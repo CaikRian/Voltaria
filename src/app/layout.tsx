@@ -6,6 +6,8 @@ import { Footer } from "@/components/Footer";
 import { CartDrawer } from "@/components/CartDrawer";
 import { Providers } from "@/components/Providers";
 import { PageTransition } from "@/components/PageTransition";
+import { NavigationProgress } from "@/components/NavigationProgress";
+import { Suspense } from "react";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 const display = Space_Grotesk({
@@ -34,6 +36,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" className={`${sans.variable} ${display.variable}`}>
       <body className="flex min-h-screen flex-col font-sans">
         <Providers>
+          <Suspense fallback={null}>
+            <NavigationProgress />
+          </Suspense>
           <Header />
           <main className="flex-1">
             <PageTransition>{children}</PageTransition>

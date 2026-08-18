@@ -36,3 +36,14 @@
     scroll-behavior: auto !important;
   }
 }
+
+@keyframes navigation-progress {
+  0% { transform: translateX(-110%); }
+  55% { transform: translateX(120%); }
+  100% { transform: translateX(310%); }
+}
+
+@keyframes loading-float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-7px) rotate(2deg); }
+}
