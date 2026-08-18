@@ -1,0 +1,264 @@
+// Prisma schema — fonte única da verdade do banco.
+// Dev: SQLite (zero config). Produção: troque provider para "postgresql".
+//
+// Convenção importante: TODO valor monetário é armazenado em CENTAVOS (Int).
+// Nunca use Float para dinheiro — evita erros de arredondamento em checkout.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  icon      String? // emoji ou nome de ícone para UI
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Product {
+  id            String    @id @default(cuid())
+  name          String
+  slug          String    @unique
+  description   String
+  brand         String?
+  priceCents    Int // preço de venda em centavos
+  compareCents  Int? // preço "de" (riscado) — para calcular desconto
+  imageUrl      String
+  gallery       String? // JSON string com URLs extras (SQLite não tem array)
+  featured      Boolean   @default(false)
+  active        Boolean   @default(true)
+  stock         Int       @default(0) // estoque quando não há variações
+  category      Category  @relation(fields: [categoryId], references: [id])
+  categoryId    String
+  variants      Variant[]
+  reviews       Review[]
+  questions     Question[]
+  createdAt     DateTime  @default(now())
+
+  @@index([categoryId])
+  @@index([featured])
+}
+
+// Variações (ex.: "128GB / Preto"). Preço/estoque podem sobrescrever o produto.
+model Variant {
+  id         String  @id @default(cuid())
+  name       String
+  sku        String  @unique
+  priceCents Int? // se nulo, herda o preço do produto
+  stock      Int     @default(0)
+  product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+
+  @@index([productId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String? // avatar (ex.: vindo do Google)
+  passwordHash  String? // hash Argon2/bcrypt — nulo para contas só-social
+  role          String    @default("CLIENTE") // CLIENTE | VENDEDOR | GERENTE | ADMIN
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+
+  orders       Order[]
+  reviews      Review[]
+  questions    Question[]
+  addresses    Address[]
+  accounts     Account[] // logins sociais vinculados
+  sessions     Session[]
+  orderMessages OrderMessage[]
+}
+
+// Endereços salvos do cliente — só pra usuários logados (checkout de convidado
+// nunca grava aqui). Um cliente pode ter vários (Casa, Trabalho...), um padrão.
+model Address {
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  label        String // rótulo livre: "Casa", "Trabalho"
+  name         String // destinatário (pode diferir do nome da conta)
+  cep          String // 8 dígitos, sem máscara
+  street       String
+  number       String
+  complement   String?
+  neighborhood String
+  city         String
+  state        String // UF, 2 letras
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// --- Modelos padrão do Auth.js (NextAuth) ---
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Order {
+  id           String             @id @default(cuid())
+  email        String
+  totalCents   Int
+  // Status: AGUARDANDO_PAGAMENTO | PAGAMENTO_RECUSADO | PAGAMENTO_APROVADO | PREPARANDO_ENVIO | ENVIADO | ENTREGUE | REEMBOLSO_SOLICITADO | REEMBOLSADO | CANCELADO
+  status       String             @default("AGUARDANDO_PAGAMENTO")
+  user         User?              @relation(fields: [userId], references: [id])
+  userId       String?
+  items        OrderItem[]
+  statusEvents OrderStatusEvent[]
+  messages     OrderMessage[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  // --- Rastreamento de Cancelamento/Reembolso ---
+  reasonCancelled  String? // motivo do cancelamento (ex: "Cliente desistiu", "Recusa de pagamento")
+  refundReason     String? // motivo do reembolso (ex: "Produto danificado", "Não chegou")
+  refundRequestedAt DateTime? // timestamp da solicitação de reembolso
+  canChangeAddress Boolean @default(true) // permite mudar endereço antes do envio
+
+  // --- Timeout para pedidos abandonados ---
+  // Orders AGUARDANDO_PAGAMENTO > 30 min podem ser auto-canceladas
+  abandonedAt DateTime? // marca quando o pedido foi identificado como abandonado
+
+  // --- Mercado Pago (Checkout Pro) ---
+  mpPreferenceId  String? @unique // Preference criada ao iniciar o checkout
+  mpPaymentId     String? @unique // setado pelo webhook quando a MP confirma o pagamento
+  mpPaymentMethod String? // payment_type_id da MP: pix, credit_card, ticket...
+  mpStatusDetail  String? // status_detail bruto da MP (debug de recusas)
+
+  // --- Endereço de entrega (snapshot no momento da compra) ---
+  // Nullable: pedidos antigos (antes desta feature) não têm esses dados; todo
+  // pedido novo sempre preenche. Páginas de detalhe tratam shippingCents==null
+  // como "pedido legado" e escondem a seção de frete/endereço.
+  shipName         String?
+  shipCep          String?
+  shipStreet       String?
+  shipNumber       String?
+  shipComplement   String?
+  shipNeighborhood String?
+  shipCity         String?
+  shipState        String?
+
+  // --- Frete ---
+  shippingCents  Int? // valor efetivamente cobrado (0 = grátis; null = pedido legado)
+  shippingMethod String? // rótulo da opção escolhida, ex.: "Econômico — 2 a 4 dias úteis"
+
+  @@index([email])
+  @@index([status])
+  @@index([userId])
+  @@index([abandonedAt])
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     String
+  productId   String
+  productName String // snapshot: nome no momento da compra
+  variantName String?
+  unitCents   Int // preço unitário no momento da compra
+  qty         Int
+
+  @@index([orderId])
+}
+
+// Linha do tempo do pedido — um snapshot por mudança de status. Alimentado pela
+// criação (PENDENTE), pelo webhook da MP (PAGO/CANCELADO) e pelas atualizações
+// manuais do staff no painel (ENVIADO/ENTREGUE/...).
+model OrderStatusEvent {
+  id        String   @id @default(cuid())
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String
+  status    String // snapshot do status nesse momento
+  note      String? // opcional: código de rastreio, motivo, observação do staff
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+}
+
+model OrderMessage {
+  id        String   @id @default(cuid())
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    String?
+  senderRole String  // CLIENTE | VENDEDOR | GERENTE | ADMIN
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([userId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int // 1 a 5
+  comment   String?
+  hidden    Boolean  @default(false) // moderação: oculta da loja sem apagar o dado
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, userId]) // 1 avaliação por cliente/produto — resubmissão faz upsert
+  @@index([productId])
+}
+
+model Question {
+  id         String    @id @default(cuid())
+  question   String
+  answer     String?
+  answeredBy String? // snapshot do nome/e-mail de quem respondeu — não é relation
+  answeredAt DateTime?
+  hidden     Boolean   @default(false)
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  createdAt  DateTime  @default(now())
+
+  @@index([productId])
+}
