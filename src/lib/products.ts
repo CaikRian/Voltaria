@@ -12,6 +12,32 @@ export async function getFeaturedProducts(limit = 8) {
   });
 }
 
+// Ranking real por unidades vendidas. Pedidos sem pagamento, recusados,
+// cancelados ou reembolsados não inflam artificialmente a popularidade.
+export async function getTrendingProducts(limit = 4) {
+  const ranking = await prisma.orderItem.groupBy({
+    by: ["productId"],
+    where: {
+      order: {
+        status: { in: ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO", "ENVIADO", "ENTREGUE"] },
+      },
+    },
+    _sum: { qty: true },
+    orderBy: { _sum: { qty: "desc" } },
+    take: limit * 3,
+  });
+
+  if (ranking.length === 0) return [];
+  const products = await prisma.product.findMany({
+    where: { id: { in: ranking.map((item) => item.productId) }, active: true },
+    include: { category: true },
+  });
+  const position = new Map(ranking.map((item, index) => [item.productId, index]));
+  return products
+    .sort((a, b) => (position.get(a.id) ?? 0) - (position.get(b.id) ?? 0))
+    .slice(0, limit);
+}
+
 export async function getCategories() {
   return prisma.category.findMany({ orderBy: { name: "asc" } });
 }
