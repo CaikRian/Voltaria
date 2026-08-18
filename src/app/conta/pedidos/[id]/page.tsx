@@ -171,7 +171,12 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
       </div>
 
       <div className="mt-6">
-        <OrderMessageThread orderId={order.id} mode="customer" messages={order.messages} />
+        <OrderMessageThread
+          orderId={order.id}
+          mode="customer"
+          messages={order.messages}
+          closed={order.chatClosedAt != null}
+        />
       </div>
     </div>
   );

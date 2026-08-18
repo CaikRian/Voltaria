@@ -75,3 +75,41 @@ export async function restoreAbandonedOrder(orderId: string) {
     data: { abandonedAt: null },
   });
 }
+
+/**
+ * Fecha automaticamente chats de pedido em que a equipe já respondeu e o
+ * cliente ficou mais de 3 dias em silêncio. O prazo NUNCA conta enquanto quem
+ * deve responder é a equipe (awaitingReplyFrom === "STAFF") — só existe pressão
+ * de tempo do lado do cliente, que pode simplesmente sumir da conversa.
+ */
+const CHAT_INACTIVITY_TIMEOUT_DAYS = 3;
+
+export async function closeStaleChats() {
+  const cutoffTime = new Date(Date.now() - CHAT_INACTIVITY_TIMEOUT_DAYS * 24 * 60 * 60 * 1000);
+
+  console.log(`[Chat Cleanup] Procurando chats aguardando cliente desde antes de ${cutoffTime.toISOString()}`);
+
+  const staleChats = await prisma.order.findMany({
+    where: {
+      awaitingReplyFrom: "CLIENTE",
+      chatWaitingSince: { lt: cutoffTime },
+      chatClosedAt: null,
+    },
+    select: { id: true },
+  });
+
+  console.log(`[Chat Cleanup] Encontrados ${staleChats.length} chats inativos para fechar`);
+
+  for (const order of staleChats) {
+    try {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { chatClosedAt: new Date() },
+      });
+    } catch (e) {
+      console.error(`[Chat Cleanup] Erro ao fechar chat do pedido ${order.id}:`, e);
+    }
+  }
+
+  return staleChats.length;
+}

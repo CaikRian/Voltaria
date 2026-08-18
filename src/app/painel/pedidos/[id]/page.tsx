@@ -209,7 +209,12 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
       </div>
 
       <div className="mt-6">
-        <OrderMessageThread orderId={order.id} mode="staff" messages={order.messages} />
+        <OrderMessageThread
+          orderId={order.id}
+          mode="staff"
+          messages={order.messages}
+          closed={order.chatClosedAt != null}
+        />
       </div>
     </div>
   );

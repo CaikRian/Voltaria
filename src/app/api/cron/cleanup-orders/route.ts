@@ -16,7 +16,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { cleanupAbandonedOrders } from "@/lib/cleanup-orders";
+import { cleanupAbandonedOrders, closeStaleChats } from "@/lib/cleanup-orders";
 
 // Validação simples de segurança — adicione um token em produção
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -37,13 +37,17 @@ export async function GET(req: NextRequest) {
 
   try {
     console.log("[Cron] Iniciando cleanup de pedidos abandonados...");
-    const count = await cleanupAbandonedOrders();
+    const abandonedCount = await cleanupAbandonedOrders();
+
+    console.log("[Cron] Iniciando fechamento de chats inativos...");
+    const closedChatsCount = await closeStaleChats();
 
     return NextResponse.json(
       {
         success: true,
-        message: `Cleanup concluído: ${count} pedidos marcados como abandonados`,
-        count,
+        message: `Cleanup concluído: ${abandonedCount} pedidos marcados como abandonados, ${closedChatsCount} chats fechados por inatividade`,
+        abandonedCount,
+        closedChatsCount,
         timestamp: new Date().toISOString(),
       },
       { status: 200 }

@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { Button } from "@/components/ui/Button";
-import { sendOrderMessageAction, sendOrderReplyAction } from "@/lib/actions/orders";
+import { sendOrderMessageAction, sendOrderReplyAction, closeOrderChatAction } from "@/lib/actions/orders";
 
 type MessageUser = {
   name?: string | null;
@@ -21,6 +21,7 @@ type Props = {
   orderId: string;
   mode: "customer" | "staff";
   messages: Message[];
+  closed?: boolean;
 };
 
 const formatSender = (role: string) => {
@@ -38,21 +39,47 @@ const formatSender = (role: string) => {
   }
 };
 
-export function OrderMessageThread({ orderId, mode, messages }: Props) {
+export function OrderMessageThread({ orderId, mode, messages, closed = false }: Props) {
   const action =
     mode === "customer"
       ? sendOrderMessageAction.bind(null, orderId)
       : sendOrderReplyAction.bind(null, orderId);
   const [state, formAction, pending] = useActionState(action, {});
+  const [closeState, closeAction, closePending] = useActionState(
+    closeOrderChatAction.bind(null, orderId),
+    {}
+  );
 
   return (
     <div className="rounded-xl2 border border-line bg-paper p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <p className="text-sm font-medium">Chat interno do pedido</p>
-        <span className="text-xs text-ink-muted">
-          {messages.length} {messages.length === 1 ? "mensagem" : "mensagens"}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-ink-muted">
+            {messages.length} {messages.length === 1 ? "mensagem" : "mensagens"}
+          </span>
+          {mode === "staff" && !closed && (
+            <form action={closeAction}>
+              <button
+                type="submit"
+                disabled={closePending}
+                className="text-xs font-medium text-ink-muted hover:text-red-600 hover:underline"
+              >
+                {closePending ? "Fechando..." : "Fechar conversa"}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
+
+      {closeState.error && <p className="mb-3 text-xs text-red-600">{closeState.error}</p>}
+
+      {closed && (
+        <p className="mb-3 rounded-xl border border-line bg-mist px-3 py-2 text-xs text-ink-muted">
+          Esta conversa foi encerrada{mode === "staff" ? " (manualmente ou por 3 dias sem resposta do cliente)" : ""}.
+          Enviar uma nova mensagem reabre o chat automaticamente.
+        </p>
+      )}
 
       <div className="mb-4 flex max-h-80 flex-col gap-3 overflow-y-auto rounded-xl border border-line bg-mist p-3">
         {messages.length === 0 ? (

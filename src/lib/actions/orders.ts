@@ -380,9 +380,17 @@ export async function sendOrderMessageAction(
       text,
     },
   });
+  // Cliente falou: agora quem deve responder é a equipe — sem prazo pra ela.
+  // Mensagem nova sempre reabre um chat fechado (manual ou por inatividade).
+  await prisma.order.update({
+    where: { id: order.id },
+    data: { awaitingReplyFrom: "STAFF", chatWaitingSince: null, chatClosedAt: null },
+  });
 
   revalidatePath("/conta/pedidos");
   revalidatePath(`/conta/pedidos/${orderId}`);
+  revalidatePath("/painel/pedidos");
+  revalidatePath(`/painel/pedidos/${orderId}`);
   return { success: true };
 }
 
@@ -415,6 +423,41 @@ export async function sendOrderReplyAction(
       senderRole: user.role,
       text,
     },
+  });
+  // Equipe respondeu: agora quem deve responder é o cliente — prazo de 3 dias
+  // começa a contar a partir de agora (closeStaleChats cuida do resto).
+  await prisma.order.update({
+    where: { id: order.id },
+    data: { awaitingReplyFrom: "CLIENTE", chatWaitingSince: new Date(), chatClosedAt: null },
+  });
+
+  revalidatePath("/painel/pedidos");
+  revalidatePath(`/painel/pedidos/${orderId}`);
+  revalidatePath("/conta/pedidos");
+  revalidatePath(`/conta/pedidos/${orderId}`);
+  return { success: true };
+}
+
+/**
+ * Ação: Equipe encerra manualmente o chat de um pedido (ex.: assunto resolvido).
+ * Uma nova mensagem de qualquer lado reabre automaticamente.
+ */
+export async function closeOrderChatAction(
+  orderId: string,
+  _prev: OrderMessageFormState,
+  _formData: FormData
+): Promise<OrderMessageFormState> {
+  const user = await requireUser();
+  if (!can(user.role, "order:update:status")) {
+    return { error: "Você não tem permissão para fechar esta conversa." };
+  }
+
+  const order = await prisma.order.findUnique({ where: { id: orderId }, select: { id: true } });
+  if (!order) return { error: "Pedido não encontrado." };
+
+  await prisma.order.update({
+    where: { id: order.id },
+    data: { chatClosedAt: new Date() },
   });
 
   revalidatePath("/painel/pedidos");

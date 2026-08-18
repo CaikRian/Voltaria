@@ -41,20 +41,23 @@ export async function getAdminOrders(opts?: { status?: string; q?: string }) {
 }
 
 export async function getSellerDashboardSummary() {
+  // "Pendente" = a última mensagem do chat foi do cliente e a equipe ainda não
+  // respondeu (awaitingReplyFrom === "STAFF"). Antes isso checava "o pedido já
+  // teve alguma mensagem de cliente" — o que deixava o card preso em "pendente"
+  // pra sempre, mesmo depois da equipe responder.
   const [awaitingApproval, refundRequests, pendingShipment, chatPending, pendingMessages] = await Promise.all([
     prisma.order.count({ where: { status: "AGUARDANDO_PAGAMENTO" } }),
     prisma.order.count({ where: { status: "REEMBOLSO_SOLICITADO" } }),
     prisma.order.count({ where: { status: { in: ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO"] } } }),
-    prisma.order.count({ where: { messages: { some: { senderRole: "CLIENTE" } } } }),
+    prisma.order.count({ where: { awaitingReplyFrom: "STAFF", chatClosedAt: null } }),
     prisma.order.findMany({
-      where: { messages: { some: { senderRole: "CLIENTE" } } },
+      where: { awaitingReplyFrom: "STAFF", chatClosedAt: null },
       select: {
         id: true,
         email: true,
         status: true,
         updatedAt: true,
         messages: {
-          where: { senderRole: "CLIENTE" },
           orderBy: { createdAt: "desc" },
           take: 1,
           select: { text: true, createdAt: true },
