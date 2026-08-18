@@ -17,9 +17,6 @@ type Message = {
   senderRole: string;
   createdAt: Date;
   user?: MessageUser | null;
-  attachmentUrl?: string | null;
-  attachmentType?: string | null;
-  attachmentName?: string | null;
 };
 
 type Props = {
@@ -109,6 +106,14 @@ export function OrderMessageThread({ orderId, mode, messages, closed = false }: 
     requestAnimationFrame(() => { input.focus(); input.setSelectionRange(start + 2, start + 2 + selected.length); });
   }
 
+  function colorSelection(color: "vermelho" | "azul" | "verde" | "roxo") {
+    const input = textareaRef.current; if (!input) return;
+    const start = input.selectionStart; const end = input.selectionEnd;
+    const selected = text.slice(start, end) || "texto colorido";
+    setText(`${text.slice(0, start)}[cor=${color}]${selected}[/cor]${text.slice(end)}`);
+    requestAnimationFrame(() => input.focus());
+  }
+
   const visibleMessages = query.trim() ? messages.filter((message) => message.text.toLocaleLowerCase("pt-BR").includes(query.trim().toLocaleLowerCase("pt-BR"))) : messages;
   const quickReplies = ["Olá! Já estamos verificando para você.", "Seu pedido está em preparação e avisaremos assim que for enviado.", "Obrigado pelas informações. Retornaremos com uma atualização em breve."];
   function addEmoji(emoji: string) { setText((current) => `${current}${emoji}`); textareaRef.current?.focus(); }
@@ -184,7 +189,6 @@ export function OrderMessageThread({ orderId, mode, messages, closed = false }: 
                     </span>
                   </div>
                   <RichMessage text={message.text} />
-                  {message.attachmentType === "IMAGE" && message.attachmentUrl && <a href={message.attachmentUrl} target="_blank" rel="noopener noreferrer"><img src={message.attachmentUrl} alt={message.attachmentName ?? "Imagem anexada"} className="mt-2 max-h-72 w-full rounded-xl object-cover" /></a>}
                   <button type="button" onClick={() => copyMessage(message)} className={`mt-2 text-[10px] font-semibold opacity-0 transition group-hover:opacity-100 ${isOwn ? "text-white/70" : "text-brand"}`}>{copiedId === message.id ? "Copiada ✓" : "Copiar mensagem"}</button>
                 </div>
               </div>
@@ -204,8 +208,8 @@ export function OrderMessageThread({ orderId, mode, messages, closed = false }: 
         )}
         <input type="hidden" name="attachmentUrl" value={attachment?.url ?? ""} /><input type="hidden" name="attachmentType" value={attachment?.type ?? ""} /><input type="hidden" name="attachmentName" value={attachment?.name ?? ""} />
         {mode === "staff" && <div className="flex gap-2 overflow-x-auto pb-1">{quickReplies.map((reply) => <button key={reply} type="button" onClick={() => { setText(reply); textareaRef.current?.focus(); }} className="shrink-0 rounded-full border border-brand/20 bg-brand-soft px-3 py-1.5 text-xs font-medium text-brand-dark hover:bg-brand hover:text-white">{reply}</button>)}</div>}
-        <div className="overflow-hidden rounded-2xl border border-line bg-white focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/10">
-        <div className="flex items-center gap-1 border-b border-line bg-mist/70 px-2 py-1.5"><button type="button" onClick={boldSelection} title="Negrito" className="grid h-8 w-8 place-items-center rounded-lg font-serif font-bold hover:bg-white">B</button><label title="Anexar imagem" className="grid h-8 cursor-pointer place-items-center rounded-lg px-2 text-sm hover:bg-white">▧ Imagem<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadFile(file); event.target.value = ""; }} /></label><span className="mx-1 h-5 w-px bg-line" />{["😊", "👍", "✅", "📦", "🙏"].map((emoji) => <button key={emoji} type="button" onClick={() => addEmoji(emoji)} className="grid h-8 w-8 place-items-center rounded-lg hover:bg-white">{emoji}</button>)}<span className="ml-auto hidden px-2 text-[10px] text-ink-muted sm:block">Ctrl + Enter para enviar</span></div>
+        <div className="overflow-hidden rounded-2xl border-2 border-brand/20 bg-white shadow-card focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/10">
+        <div className="border-b border-line bg-gradient-to-r from-brand-soft to-mist px-3 py-2"><p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-brand-dark">Ferramentas da mensagem</p><div className="flex flex-wrap items-center gap-1.5"><button type="button" onClick={boldSelection} title="Colocar seleção em negrito" className="flex h-9 items-center gap-2 rounded-lg border border-line bg-white px-3 text-xs font-bold shadow-sm hover:border-brand"><strong className="font-serif text-base">B</strong> Negrito</button><label title="Anexar imagem" className="flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-brand px-3 text-xs font-bold text-white shadow-sm hover:bg-brand-dark"><span className="text-base">▧</span> Anexar imagem<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadFile(file); event.target.value = ""; }} /></label><div className="ml-1 flex h-9 items-center gap-1 rounded-lg border border-line bg-white px-2"><span className="mr-1 text-[10px] font-semibold text-ink-muted">Cor</span>{(["vermelho", "azul", "verde", "roxo"] as const).map((color) => <button key={color} type="button" onClick={() => colorSelection(color)} title={`Texto ${color}`} aria-label={`Aplicar cor ${color}`} className={`h-5 w-5 rounded-full border-2 border-white shadow ${color === "vermelho" ? "bg-red-500" : color === "azul" ? "bg-blue-500" : color === "verde" ? "bg-emerald-500" : "bg-violet-500"}`} />)}</div><span className="mx-1 h-6 w-px bg-line" />{["😊", "👍", "✅", "📦", "🙏"].map((emoji) => <button key={emoji} type="button" onClick={() => addEmoji(emoji)} className="grid h-9 w-9 place-items-center rounded-lg bg-white text-base shadow-sm hover:-translate-y-0.5 hover:bg-brand-soft">{emoji}</button>)}</div></div>
         <textarea
           ref={textareaRef}
           name="text"
@@ -242,6 +246,15 @@ export function OrderMessageThread({ orderId, mode, messages, closed = false }: 
 }
 
 function RichMessage({ text }: { text: string }) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return <p className="whitespace-pre-wrap leading-relaxed">{parts.map((part, index) => part.startsWith("**") && part.endsWith("**") ? <strong key={index}>{part.slice(2, -2)}</strong> : <span key={index}>{part}</span>)}</p>;
+  const imagePattern = /\[\[imagem:(https:\/\/[^|\]]+)\|([^\]]+)\]\]/g;
+  const images = [...text.matchAll(imagePattern)];
+  const cleanText = text.replace(imagePattern, "").trim();
+  const parts = cleanText.split(/(\*\*[^*]+\*\*|\[cor=(?:vermelho|azul|verde|roxo)\][\s\S]*?\[\/cor\])/g);
+  const colors: Record<string, string> = { vermelho: "text-red-500", azul: "text-blue-500", verde: "text-emerald-500", roxo: "text-violet-500" };
+  return <><p className="whitespace-pre-wrap leading-relaxed">{parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) return <strong key={index}>{part.slice(2, -2)}</strong>;
+    const color = part.match(/^\[cor=(vermelho|azul|verde|roxo)\]([\s\S]*)\[\/cor\]$/);
+    if (color) return <span key={index} className={`font-medium ${colors[color[1]]}`}>{color[2]}</span>;
+    return <span key={index}>{part}</span>;
+  })}</p>{images.map((image, index) => <a key={`${image[1]}-${index}`} href={image[1]} target="_blank" rel="noopener noreferrer" className="mt-2 block overflow-hidden rounded-xl border border-white/20"><img src={image[1]} alt={image[2]} className="max-h-80 w-full object-cover transition hover:scale-[1.02]" /><span className="block bg-black/10 px-2 py-1 text-[10px]">{image[2]} · Clique para ampliar</span></a>)}</>;
 }

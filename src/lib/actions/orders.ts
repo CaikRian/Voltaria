@@ -276,9 +276,10 @@ function readMessageAttachment(formData: FormData) {
   const attachmentUrl = String(formData.get("attachmentUrl") ?? "").trim();
   const attachmentType = String(formData.get("attachmentType") ?? "").trim();
   const attachmentName = String(formData.get("attachmentName") ?? "").trim();
-  if (!attachmentUrl) return {};
+  if (!attachmentUrl) return "";
   if (!attachmentUrl.startsWith("https://") || attachmentType !== "IMAGE") return null;
-  return { attachmentUrl, attachmentType, attachmentName: attachmentName.slice(0, 160) || null };
+  const safeName = attachmentName.replace(/[|\]\r\n]/g, " ").slice(0, 160) || "Imagem";
+  return `[[imagem:${attachmentUrl}|${safeName}]]`;
 }
 
 /**
@@ -389,7 +390,7 @@ export async function sendOrderMessageAction(
   const text = (formData.get("text") as string | null)?.trim();
   const attachment = readMessageAttachment(formData);
   if (attachment === null) return { error: "Anexo inválido." };
-  if ((!text || text.length < 3) && !attachment.attachmentUrl) {
+  if ((!text || text.length < 3) && !attachment) {
     return { fieldErrors: { text: ["Escreva uma mensagem para o vendedor."] } };
   }
 
@@ -405,8 +406,7 @@ export async function sendOrderMessageAction(
       orderId: order.id,
       userId: user.id,
       senderRole: user.role,
-      text: text || "Imagem",
-      ...attachment,
+      text: [text, attachment].filter(Boolean).join("\n"),
     },
   });
   // Cliente falou: agora quem deve responder é a equipe — sem prazo pra ela.
@@ -437,7 +437,7 @@ export async function sendOrderReplyAction(
   const text = (formData.get("text") as string | null)?.trim();
   const attachment = readMessageAttachment(formData);
   if (attachment === null) return { error: "Anexo inválido." };
-  if ((!text || text.length < 3) && !attachment.attachmentUrl) {
+  if ((!text || text.length < 3) && !attachment) {
     return { fieldErrors: { text: ["Escreva uma resposta antes de enviar."] } };
   }
 
@@ -453,8 +453,7 @@ export async function sendOrderReplyAction(
       orderId: order.id,
       userId: user.id,
       senderRole: user.role,
-      text: text || "Imagem",
-      ...attachment,
+      text: [text, attachment].filter(Boolean).join("\n"),
     },
   });
   // Equipe respondeu: agora quem deve responder é o cliente — prazo de 3 dias
