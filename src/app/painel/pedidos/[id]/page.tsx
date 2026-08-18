@@ -48,26 +48,17 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
   ];
 
   return (
-    <div>
-      <div className="mb-6">
-        <Link href="/painel/pedidos" className="text-sm text-brand hover:underline">
-          ← Voltar para pedidos
-        </Link>
-        <div className="mt-1 flex flex-wrap items-center gap-3">
-          <h2 className="font-display text-xl font-semibold">Pedido #{order.id.slice(-8)}</h2>
-          <OrderStatusBadge status={order.status} />
-        </div>
-        <p className="mt-1 text-sm text-ink-muted">
-          Criado em {new Date(order.createdAt).toLocaleString("pt-BR")} · última atualização em{" "}
-          {new Date(order.updatedAt).toLocaleString("pt-BR")}
-        </p>
-      </div>
+    <div className="space-y-6">
+      <section className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-slate-900 via-brand-dark to-brand p-6 text-white shadow-pop sm:p-8">
+        <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative"><Link href="/painel/pedidos" className="text-sm font-medium text-white/70 hover:text-white">← Voltar para pedidos</Link><div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">Central do pedido</p><div className="mt-2 flex flex-wrap items-center gap-3"><h2 className="font-display text-3xl font-semibold">Pedido #{order.id.slice(-8)}</h2><OrderStatusBadge status={order.status} /></div><p className="mt-2 text-sm text-white/65">Criado em {new Date(order.createdAt).toLocaleString("pt-BR")} · atualizado em {new Date(order.updatedAt).toLocaleString("pt-BR")}</p></div><div className="rounded-2xl bg-white/10 px-5 py-3 backdrop-blur"><p className="text-xs uppercase tracking-wide text-white/60">Valor total</p><p className="font-display text-2xl font-bold">{formatBRL(order.totalCents)}</p></div></div></div>
+      </section>
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         {highlights.map((item) => (
           <div
             key={item.label}
-            className="rounded-xl2 border border-line bg-paper p-4 shadow-card"
+            className="group rounded-xl2 border border-line bg-paper p-4 shadow-card transition hover:-translate-y-0.5 hover:border-brand/40"
           >
             <p className="text-xs font-medium uppercase tracking-[0.12em] text-ink-muted">{item.label}</p>
             <p
@@ -87,17 +78,17 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex flex-col gap-5">
-          <div className="rounded-xl2 border border-line bg-paper p-4">
-            <p className="mb-3 text-sm font-medium">Itens</p>
+          <div className="rounded-xl2 border border-line bg-paper p-5 shadow-card">
+            <div className="mb-3 flex items-center justify-between"><div><p className="font-display text-lg font-semibold">Itens comprados</p><p className="text-xs text-ink-muted">Resumo financeiro da compra</p></div><span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand">{order.items.length} item(ns)</span></div>
             <ul className="divide-y divide-line text-sm">
               {order.items.map((it) => (
-                <li key={it.id} className="flex items-center justify-between py-2">
-                  <span>
+                <li key={it.id} className="flex items-center justify-between gap-4 py-3">
+                  <span className="flex min-w-0 items-center gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-mist text-xs font-bold text-brand">{it.qty}×</span><span className="truncate">
                     {it.productName}
-                    {it.variantName ? ` (${it.variantName})` : ""} × {it.qty}
-                  </span>
+                    {it.variantName ? ` · ${it.variantName}` : ""}
+                  </span></span>
                   <span className="font-medium">{formatBRL(it.unitCents * it.qty)}</span>
                 </li>
               ))}
@@ -125,13 +116,13 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
             )}
           </div>
 
-          <div className="rounded-xl2 border border-line bg-paper p-4">
-            <p className="mb-3 text-sm font-medium">Histórico completo do pedido</p>
+          <div className="rounded-xl2 border border-line bg-paper p-5 shadow-card">
+            <div className="mb-4"><p className="font-display text-lg font-semibold">Histórico operacional</p><p className="text-xs text-ink-muted">Status e mensagens em ordem cronológica</p></div>
             <ul className="flex flex-col gap-4 text-sm">
               {timeline.map((event) => {
                 const isMessage = "senderRole" in event;
                 return (
-                  <li key={event.id} className="flex items-start gap-3 rounded-lg border border-line bg-mist p-3">
+                  <li key={event.id} className="relative flex items-start gap-3 rounded-xl border border-line bg-mist/60 p-3 transition hover:border-brand/30 hover:bg-brand-soft/20">
                     {isMessage ? (
                       <span className={`mt-0.5 inline-flex rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
                         event.senderRole === "CLIENTE"
@@ -158,15 +149,15 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
           </div>
         </div>
 
-        <aside className="flex flex-col gap-5">
-          <div className="rounded-xl2 border border-line bg-paper p-4">
-            <p className="mb-2 text-sm font-medium">Contato</p>
+        <aside className="flex flex-col gap-4 xl:sticky xl:top-28 xl:self-start">
+          <div className="rounded-xl2 border border-line bg-paper p-5 shadow-card">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">Cliente</p>
             <p className="text-sm text-ink-soft">{order.email}</p>
           </div>
 
           {order.shipStreet && (
-            <div className="rounded-xl2 border border-line bg-paper p-4">
-              <p className="mb-2 text-sm font-medium">Endereço de entrega</p>
+            <div className="rounded-xl2 border border-line bg-paper p-5 shadow-card">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">Endereço de entrega</p>
               <p className="text-sm text-ink-soft">{order.shipName}</p>
               <p className="text-sm text-ink-muted">
                 {order.shipStreet}, {order.shipNumber}
@@ -180,7 +171,7 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
           )}
 
           {order.trackingCode && (
-            <div className="rounded-xl2 border border-line bg-paper p-4">
+            <div className="rounded-xl2 border border-blue-200 bg-blue-50 p-5 shadow-card">
               <p className="mb-2 text-sm font-medium">Rastreamento</p>
               <p className="font-mono text-sm text-ink-soft">{order.trackingCode}</p>
               {trackingUrl && (
@@ -196,8 +187,8 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
             </div>
           )}
 
-          <div className="rounded-xl2 border border-line bg-paper p-4">
-            <p className="mb-2 text-sm font-medium">Pagamento</p>
+          <div className="rounded-xl2 border border-line bg-paper p-5 shadow-card">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">Pagamento</p>
             <dl className="flex flex-col gap-1 text-sm">
               <div className="flex justify-between">
                 <dt className="text-ink-muted">Meio</dt>
@@ -219,15 +210,15 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
           </div>
 
           {canUpdateStatus && (
-            <div className="rounded-xl2 border border-line bg-paper p-4">
-              <p className="mb-2 text-sm font-medium">Atualizar status</p>
+            <div className="rounded-xl2 border border-brand/30 bg-brand-soft/30 p-5 shadow-card">
+              <p className="mb-1 font-display text-lg font-semibold">Próxima ação</p><p className="mb-3 text-xs text-ink-muted">Atualize o cliente sobre o andamento</p>
               <StatusUpdateForm action={action} currentStatus={order.status} />
             </div>
           )}
         </aside>
       </div>
 
-      <div id="chat" className="mt-6 scroll-mt-28">
+      <div id="chat" className="scroll-mt-28">
         <OrderMessageThread
           orderId={order.id}
           mode="staff"

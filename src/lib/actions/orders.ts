@@ -272,6 +272,15 @@ export type OrderMessageFormState = {
   fieldErrors?: Record<string, string[]>;
 };
 
+function readMessageAttachment(formData: FormData) {
+  const attachmentUrl = String(formData.get("attachmentUrl") ?? "").trim();
+  const attachmentType = String(formData.get("attachmentType") ?? "").trim();
+  const attachmentName = String(formData.get("attachmentName") ?? "").trim();
+  if (!attachmentUrl) return {};
+  if (!attachmentUrl.startsWith("https://") || !["IMAGE", "AUDIO"].includes(attachmentType)) return null;
+  return { attachmentUrl, attachmentType, attachmentName: attachmentName.slice(0, 160) || null };
+}
+
 /**
  * Ação: Cliente cancela um pedido aguardando pagamento ou recusado
  */
@@ -378,7 +387,9 @@ export async function sendOrderMessageAction(
   if (!user) return { error: "Você precisa estar logado." };
 
   const text = (formData.get("text") as string | null)?.trim();
-  if (!text || text.length < 3) {
+  const attachment = readMessageAttachment(formData);
+  if (attachment === null) return { error: "Anexo inválido." };
+  if ((!text || text.length < 3) && !attachment.attachmentUrl) {
     return { fieldErrors: { text: ["Escreva uma mensagem para o vendedor."] } };
   }
 
@@ -394,7 +405,8 @@ export async function sendOrderMessageAction(
       orderId: order.id,
       userId: user.id,
       senderRole: user.role,
-      text,
+      text: text || (attachment.attachmentType === "AUDIO" ? "Áudio" : "Imagem"),
+      ...attachment,
     },
   });
   // Cliente falou: agora quem deve responder é a equipe — sem prazo pra ela.
@@ -423,7 +435,9 @@ export async function sendOrderReplyAction(
   }
 
   const text = (formData.get("text") as string | null)?.trim();
-  if (!text || text.length < 3) {
+  const attachment = readMessageAttachment(formData);
+  if (attachment === null) return { error: "Anexo inválido." };
+  if ((!text || text.length < 3) && !attachment.attachmentUrl) {
     return { fieldErrors: { text: ["Escreva uma resposta antes de enviar."] } };
   }
 
@@ -439,7 +453,8 @@ export async function sendOrderReplyAction(
       orderId: order.id,
       userId: user.id,
       senderRole: user.role,
-      text,
+      text: text || (attachment.attachmentType === "AUDIO" ? "Áudio" : "Imagem"),
+      ...attachment,
     },
   });
   // Equipe respondeu: agora quem deve responder é o cliente — prazo de 3 dias
