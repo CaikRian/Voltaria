@@ -148,6 +148,14 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
                 <dd className="font-mono text-xs">{order.mpPaymentId ?? "—"}</dd>
               </div>
             </dl>
+            {order.mpPaymentId && order.status !== "AGUARDANDO_PAGAMENTO" && order.status !== "PAGAMENTO_RECUSADO" ? (
+              <Link
+                href={`/conta/pedidos/${order.id}/comprovante`}
+                className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-xl border border-line px-4 text-sm font-medium text-ink transition-colors hover:bg-brand-soft"
+              >
+                Ver comprovante de pagamento
+              </Link>
+            ) : null}
           </div>
 
           <div className="rounded-xl2 border border-line bg-paper p-4">
