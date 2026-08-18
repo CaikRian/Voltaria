@@ -17,8 +17,8 @@ export async function POST(request: Request) {
         const order = await prisma.order.findUnique({ where: { id: payload.orderId }, select: { userId: true, email: true } });
         if (!order || (!isStaff(user.role) && order.userId !== user.id && order.email !== user.email)) throw new Error("Sem acesso a este pedido");
         return {
-          allowedContentTypes: ["image/jpeg", "image/png", "image/webp", "image/gif", "audio/webm", "audio/mp4", "audio/mpeg", "audio/ogg"],
-          maximumSizeInBytes: 8 * 1024 * 1024,
+          allowedContentTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
+          maximumSizeInBytes: 5 * 1024 * 1024,
           addRandomSuffix: true,
           tokenPayload: JSON.stringify({ orderId: payload.orderId, userId: user.id }),
         };

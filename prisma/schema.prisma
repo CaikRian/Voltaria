@@ -247,7 +247,7 @@ model OrderMessage {
   senderRole String  // CLIENTE | VENDEDOR | GERENTE | ADMIN
   text      String
   attachmentUrl  String?
-  attachmentType String? // IMAGE | AUDIO
+  attachmentType String? // IMAGE
   attachmentName String?
   createdAt DateTime @default(now())
 

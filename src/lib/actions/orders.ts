@@ -277,7 +277,7 @@ function readMessageAttachment(formData: FormData) {
   const attachmentType = String(formData.get("attachmentType") ?? "").trim();
   const attachmentName = String(formData.get("attachmentName") ?? "").trim();
   if (!attachmentUrl) return {};
-  if (!attachmentUrl.startsWith("https://") || !["IMAGE", "AUDIO"].includes(attachmentType)) return null;
+  if (!attachmentUrl.startsWith("https://") || attachmentType !== "IMAGE") return null;
   return { attachmentUrl, attachmentType, attachmentName: attachmentName.slice(0, 160) || null };
 }
 
@@ -405,7 +405,7 @@ export async function sendOrderMessageAction(
       orderId: order.id,
       userId: user.id,
       senderRole: user.role,
-      text: text || (attachment.attachmentType === "AUDIO" ? "Áudio" : "Imagem"),
+      text: text || "Imagem",
       ...attachment,
     },
   });
@@ -453,7 +453,7 @@ export async function sendOrderReplyAction(
       orderId: order.id,
       userId: user.id,
       senderRole: user.role,
-      text: text || (attachment.attachmentType === "AUDIO" ? "Áudio" : "Imagem"),
+      text: text || "Imagem",
       ...attachment,
     },
   });
