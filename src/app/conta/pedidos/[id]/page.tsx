@@ -12,6 +12,7 @@ import { OrderClientActions } from "../OrderClientActions";
 import { OrderAddressEditor } from "../OrderAddressEditor";
 import { OrderMessageThread } from "@/components/OrderMessageThread";
 import { getOrderTrackingHint } from "@/lib/orders";
+import { OrderTimeline } from "@/components/OrderTimeline";
 
 export const metadata: Metadata = { title: "Pedido · Minha conta" };
 
@@ -95,20 +96,11 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
             )}
           </div>
 
-          <div className="rounded-xl2 border border-line bg-paper p-4">
-            <p className="mb-3 text-sm font-medium">Linha do tempo</p>
-            <ul className="flex flex-col gap-3 text-sm">
-              {order.statusEvents.map((ev) => (
-                <li key={ev.id} className="flex items-start gap-3">
-                  <OrderStatusBadge status={ev.status} />
-                  <div>
-                    <p className="text-ink-soft">{new Date(ev.createdAt).toLocaleString("pt-BR")}</p>
-                    {ev.note && <p className="text-ink-muted">{ev.note}</p>}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <OrderTimeline
+            status={order.status}
+            events={order.statusEvents}
+            createdAt={order.createdAt}
+          />
         </div>
 
         <aside className="flex flex-col gap-5">

@@ -73,21 +73,30 @@ export function getOrderTrackingHint(statusEvents: { note?: string | null }[] = 
 // normal dela) ou quando o staff resubmete o mesmo status.
 export async function updateOrderStatus(
   orderId: string,
-  currentStatus: string,
+  _currentStatus: string,
   newStatus: string,
-  opts?: { note?: string; orderData?: Prisma.OrderUpdateInput }
+  opts?: { note?: string; orderData?: Prisma.OrderUpdateManyMutationInput }
 ) {
   return prisma.$transaction(async (tx) => {
-    const order = await tx.order.update({
-      where: { id: orderId },
+    // O update condicional é atômico: se webhook e página de retorno tentarem
+    // aplicar o mesmo status juntos, apenas uma chamada altera a linha e cria
+    // o evento. A outra só atualiza os metadados idempotentes do pagamento.
+    const statusChange = await tx.order.updateMany({
+      where: { id: orderId, status: { not: newStatus } },
       data: { status: newStatus, ...opts?.orderData },
     });
-    if (newStatus !== currentStatus) {
+
+    if (statusChange.count === 0 && opts?.orderData) {
+      await tx.order.update({ where: { id: orderId }, data: opts.orderData });
+    }
+
+    if (statusChange.count === 1) {
       await tx.orderStatusEvent.create({
         data: { orderId, status: newStatus, note: opts?.note },
       });
     }
-    return order;
+
+    return tx.order.findUniqueOrThrow({ where: { id: orderId } });
   });
 }
 
