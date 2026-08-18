@@ -42,6 +42,15 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       if (e instanceof InvalidWebhookSignatureError) {
         console.error(`[MP Webhook] Assinatura inválida para ${dataId}:`, e.reason);
+        const payload = await req.json().catch(() => null);
+        console.error("[MP Webhook DIAG]", {
+          applicationId: payload?.application_id ?? null,
+          userId: payload?.user_id ?? null,
+          liveMode: payload?.live_mode ?? null,
+          action: payload?.action ?? null,
+          requestId: req.headers.get("x-request-id"),
+          signatureFailure: e.reason,
+        });
         return NextResponse.json({ error: "assinatura inválida" }, { status: 401 });
       }
       throw e;
