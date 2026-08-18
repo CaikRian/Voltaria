@@ -255,6 +255,7 @@ export async function updateOrderStatusAction(
   });
 
   revalidatePath("/painel/pedidos");
+  revalidatePath("/painel/conversas");
   revalidatePath(`/painel/pedidos/${orderId}`);
   return { success: true };
 }
@@ -406,6 +407,7 @@ export async function sendOrderMessageAction(
   revalidatePath("/conta/pedidos");
   revalidatePath(`/conta/pedidos/${orderId}`);
   revalidatePath("/painel/pedidos");
+  revalidatePath("/painel/conversas");
   revalidatePath(`/painel/pedidos/${orderId}`);
   return { success: true };
 }
@@ -448,6 +450,7 @@ export async function sendOrderReplyAction(
   });
 
   revalidatePath("/painel/pedidos");
+  revalidatePath("/painel/conversas");
   revalidatePath(`/painel/pedidos/${orderId}`);
   revalidatePath("/conta/pedidos");
   revalidatePath(`/conta/pedidos/${orderId}`);
@@ -477,6 +480,7 @@ export async function closeOrderChatAction(
   });
 
   revalidatePath("/painel/pedidos");
+  revalidatePath("/painel/conversas");
   revalidatePath(`/painel/pedidos/${orderId}`);
   return { success: true };
 }

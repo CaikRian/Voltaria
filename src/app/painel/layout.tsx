@@ -3,6 +3,7 @@ import { requireStaff } from "@/lib/auth-helpers";
 import { ROLE_LABELS, can, type Role } from "@/lib/permissions";
 import { getPanelNavigationCounts } from "@/lib/admin";
 import { PanelNav } from "./PanelNav";
+import { RealtimePanelSync } from "./RealtimePanelSync";
 
 // Trava de papel no SERVIDOR: só VENDEDOR/GERENTE/ADMIN entram.
 // (Não confiamos só em esconder o link no front.)
@@ -11,7 +12,8 @@ export default async function PainelLayout({ children }: { children: React.React
   const items = [
     { href: "/painel", label: "Visão geral", icon: "⌂" },
     { href: "/painel/produtos", label: "Produtos", icon: "▦" },
-    { href: "/painel/pedidos", label: "Pedidos", icon: "□", badge: counts.chats + counts.refunds },
+    { href: "/painel/pedidos", label: "Pedidos", icon: "□", badge: counts.refunds },
+    { href: "/painel/conversas", label: "Conversas", icon: "✦", badge: counts.chats },
     ...(can(user.role, "question:answer") ? [{ href: "/painel/duvidas", label: "Dúvidas", icon: "?", badge: counts.questions }] : []),
     ...(can(user.role, "content:moderate") ? [{ href: "/painel/avaliacoes", label: "Avaliações", icon: "★" }] : []),
     ...(can(user.role, "user:manage") ? [{ href: "/painel/usuarios", label: "Equipe", icon: "♙" }] : []),
@@ -26,6 +28,7 @@ export default async function PainelLayout({ children }: { children: React.React
         <aside className="min-w-0 lg:sticky lg:top-28 lg:self-start"><PanelNav items={items} /></aside>
         <div className="min-w-0">{children}</div>
       </div>
+      <RealtimePanelSync />
     </div>
   );
 }

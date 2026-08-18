@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { sendOrderMessageAction, sendOrderReplyAction, closeOrderChatAction } from "@/lib/actions/orders";
 
@@ -40,6 +41,10 @@ const formatSender = (role: string) => {
 };
 
 export function OrderMessageThread({ orderId, mode, messages, closed = false }: Props) {
+  const router = useRouter();
+  const latestId = messages.at(-1)?.id ?? null;
+  const knownLatest = useRef<string | null>(latestId);
+  const [liveNotice, setLiveNotice] = useState(false);
   const action =
     mode === "customer"
       ? sendOrderMessageAction.bind(null, orderId)
@@ -49,6 +54,26 @@ export function OrderMessageThread({ orderId, mode, messages, closed = false }: 
     closeOrderChatAction.bind(null, orderId),
     {}
   );
+
+  useEffect(() => { knownLatest.current = latestId; }, [latestId]);
+  useEffect(() => {
+    let active = true;
+    async function syncMessages() {
+      if (document.visibilityState === "hidden") return;
+      try {
+        const response = await fetch(`/api/pedidos/${orderId}/mensagens`, { cache: "no-store" });
+        if (!response.ok || !active) return;
+        const data = await response.json() as { last: { id: string } | null };
+        if (data.last?.id && knownLatest.current && data.last.id !== knownLatest.current) {
+          knownLatest.current = data.last.id;
+          setLiveNotice(true);
+          router.refresh();
+        }
+      } catch { /* uma falha momentânea não interrompe o chat */ }
+    }
+    const timer = window.setInterval(syncMessages, 5000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [orderId, router]);
 
   return (
     <div className="rounded-xl2 border border-line bg-paper p-4">
@@ -71,6 +96,8 @@ export function OrderMessageThread({ orderId, mode, messages, closed = false }: 
           )}
         </div>
       </div>
+
+      {liveNotice && <button type="button" onClick={() => setLiveNotice(false)} className="mb-3 flex w-full items-center justify-between rounded-xl border border-brand/20 bg-brand-soft px-3 py-2 text-left text-xs font-semibold text-brand-dark"><span><span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-brand" />Nova mensagem recebida automaticamente</span><span>×</span></button>}
 
       {closeState.error && <p className="mb-3 text-xs text-red-600">{closeState.error}</p>}
 

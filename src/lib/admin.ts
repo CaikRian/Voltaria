@@ -118,6 +118,23 @@ export async function getPanelNavigationCounts() {
   return { questions, chats, refunds };
 }
 
+export async function getAdminConversations(filter: "open" | "waiting" | "closed" | "all" = "open") {
+  return prisma.order.findMany({
+    where: {
+      messages: { some: {} },
+      ...(filter === "waiting" ? { awaitingReplyFrom: "STAFF", chatClosedAt: null } : {}),
+      ...(filter === "closed" ? { chatClosedAt: { not: null } } : {}),
+      ...(filter === "open" ? { chatClosedAt: null } : {}),
+    },
+    select: {
+      id: true, email: true, status: true, awaitingReplyFrom: true, chatClosedAt: true, updatedAt: true,
+      messages: { orderBy: { createdAt: "desc" }, take: 1, select: { id: true, text: true, senderRole: true, createdAt: true } },
+      _count: { select: { messages: true } },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+}
+
 export async function getAdminOrder(id: string) {
   return prisma.order.findUnique({
     where: { id },
