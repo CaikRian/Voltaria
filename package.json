@@ -13,6 +13,7 @@
     "db:studio": "prisma studio",
     "setup": "prisma generate && prisma db push && tsx prisma/seed.ts",
     "git:publish": "node -e \"const {execSync}=require('node:child_process'); const status = execSync('git status --porcelain',{encoding:'utf8'}).trim(); if(status){ execSync('git add .',{stdio:'inherit'}); try { execSync('git diff --cached --quiet',{stdio:'inherit'}); } catch { execSync('git commit -m \\\"chore: deploy update\\\"',{stdio:'inherit'}); } } else { console.log('No file changes to commit.'); } execSync('git push origin main',{stdio:'inherit'});\"",
+    "deploy": "npm run git:publish",
     "deploy:vercel": "npx vercel --prod --yes",
     "deploy:all": "npm run git:publish && npm run deploy:vercel"
   },
