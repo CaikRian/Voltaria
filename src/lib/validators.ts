@@ -25,6 +25,29 @@ export const registerSchema = z
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 
+// --- Perfil e segurança da conta ---
+export const profileSchema = z.object({
+  name: z.string().trim().min(2, "Informe seu nome").max(120, "Nome muito longo"),
+  email: z.string().trim().toLowerCase().email("E-mail inválido"),
+  currentPassword: z.string().optional().default(""),
+});
+
+export const passwordChangeSchema = z
+  .object({
+    currentPassword: z.string().optional().default(""),
+    newPassword: z.string().min(8, "A senha deve ter ao menos 8 caracteres").regex(/[A-Za-z]/, "Inclua ao menos uma letra").regex(/[0-9]/, "Inclua ao menos um número"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmPassword"],
+  });
+
+export const deleteAccountSchema = z.object({
+  confirmation: z.literal("EXCLUIR", { errorMap: () => ({ message: "Digite EXCLUIR para confirmar" }) }),
+  currentPassword: z.string().optional().default(""),
+});
+
 // --- Produtos (painel) ---
 // Teto sensato em reais — sem isso, um erro de digitação (ex.: "5000000000" num
 // campo de preço) vira centavos e estoura o limite do INT de 32 bits no banco

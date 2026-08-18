@@ -9,10 +9,14 @@ export const authConfig = {
   trustHost: true,
   callbacks: {
     // Grava id e papel do usuário dentro do token JWT no login.
-    jwt({ token, user }) {
+    jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.role = user.role ?? "CLIENTE";
+      }
+      if (trigger === "update" && session) {
+        if (typeof session.name === "string") token.name = session.name;
+        if (typeof session.email === "string") token.email = session.email;
       }
       return token;
     },
@@ -21,6 +25,8 @@ export const authConfig = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = (token.role as string) ?? "CLIENTE";
+        session.user.name = token.name;
+        session.user.email = token.email as string;
       }
       return session;
     },
