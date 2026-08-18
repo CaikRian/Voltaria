@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCart } from "@/store/cart";
 import { Button } from "@/components/ui/Button";
+import { useRouter } from "next/navigation";
 
 type Variant = { id: string; name: string; priceCents: number | null; stock: number };
 
@@ -27,6 +28,8 @@ export function AddToCart({
   variants,
 }: Props) {
   const add = useCart((s) => s.add);
+  const closeCart = useCart((s) => s.close);
+  const router = useRouter();
   const [selected, setSelected] = useState<Variant | null>(
     variants.length > 0 ? variants[0] : null
   );
@@ -45,7 +48,7 @@ export function AddToCart({
     return () => clearTimeout(t);
   }, [justAdded]);
 
-  function handleAdd() {
+  function addCurrentItem() {
     add({
       productId,
       slug,
@@ -54,7 +57,17 @@ export function AddToCart({
       variantName: selected?.name,
       unitCents: currentPrice,
     });
+  }
+
+  function handleAdd() {
+    addCurrentItem();
     setJustAdded(true);
+  }
+
+  function handleBuyNow() {
+    addCurrentItem();
+    closeCart();
+    router.push("/checkout");
   }
 
   return (
@@ -97,20 +110,28 @@ export function AddToCart({
         )}
       </div>
 
-      <Button size="lg" onClick={handleAdd} disabled={outOfStock} className="w-full overflow-hidden sm:w-auto">
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.span
-            key={justAdded ? "added" : "idle"}
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            transition={{ duration: 0.15 }}
-            className="inline-block"
-          >
-            {justAdded ? "Adicionado ✓" : "Adicionar ao carrinho"}
-          </motion.span>
-        </AnimatePresence>
-      </Button>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Button size="lg" onClick={handleBuyNow} disabled={outOfStock} className="w-full shadow-card">
+          Comprar agora
+        </Button>
+        <Button size="lg" variant="ghost" onClick={handleAdd} disabled={outOfStock} className="w-full overflow-hidden">
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.span
+              key={justAdded ? "added" : "idle"}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.15 }}
+              className="inline-block"
+            >
+              {justAdded ? "Adicionado ✓" : "Adicionar ao carrinho"}
+            </motion.span>
+          </AnimatePresence>
+        </Button>
+      </div>
+      {!outOfStock && (
+        <p className="text-center text-xs text-ink-muted">Finalize com segurança pelo Mercado Pago.</p>
+      )}
     </div>
   );
 }

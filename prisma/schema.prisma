@@ -264,7 +264,7 @@ model Review {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([productId, userId]) // 1 avaliação por cliente/produto — resubmissão faz upsert
+  @@unique([productId, userId]) // 1 avaliação definitiva por cliente/produto
   @@index([productId])
 }
 

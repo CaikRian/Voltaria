@@ -19,6 +19,16 @@ export async function getProductRatingSummary(productId: string) {
   return { average: agg._avg.rating ?? 0, count: agg._count.rating };
 }
 
+// Inclui avaliações ocultas pela moderação: mesmo que uma avaliação deixe de
+// aparecer publicamente, ela continua contando como a avaliação única daquele
+// cliente para o produto.
+export async function getUserProductReview(userId: string, productId: string) {
+  return prisma.review.findUnique({
+    where: { productId_userId: { productId, userId } },
+    select: { id: true, hidden: true },
+  });
+}
+
 // Confere compra verificada (existe um OrderItem desse produto numa Order do
 // próprio usuário com pagamento confirmado). Vive aqui, não em lib/orders.ts,
 // porque só serve o gate de review:write — apesar de ser tecnicamente uma

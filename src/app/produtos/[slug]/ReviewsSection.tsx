@@ -1,5 +1,5 @@
 import type { getCurrentUser } from "@/lib/auth-helpers";
-import { getProductReviews, getProductRatingSummary, hasVerifiedPurchase } from "@/lib/reviews";
+import { getProductReviews, getProductRatingSummary, getUserProductReview, hasVerifiedPurchase } from "@/lib/reviews";
 import { can } from "@/lib/permissions";
 import { StarRating } from "@/components/StarRating";
 import { submitReviewAction } from "@/lib/actions/reviews";
@@ -19,7 +19,7 @@ export async function ReviewsSection({ productId, productSlug, user }: Props) {
 
   const canWrite = can(user?.role, "review:write");
   const verified = canWrite && user ? await hasVerifiedPurchase(user.id, productId) : false;
-  const myReview = user ? reviews.find((r) => r.userId === user.id) : undefined;
+  const myReview = user ? await getUserProductReview(user.id, productId) : null;
   const action = submitReviewAction.bind(null, productId, productSlug);
 
   return (
@@ -38,16 +38,20 @@ export async function ReviewsSection({ productId, productSlug, user }: Props) {
         <p className="mt-4 text-sm text-ink-muted">Compre este produto para deixar uma avaliação.</p>
       )}
 
+      {canWrite && verified && myReview && (
+        <p className="mt-4 rounded-xl border border-line bg-brand-soft px-4 py-3 text-sm text-brand-dark">
+          Você já avaliou este produto. Cada cliente pode enviar uma única avaliação por produto comprado.
+        </p>
+      )}
+
       <ReviewsPanel
         reviews={reviews}
         form={
-          canWrite && verified && user
+          canWrite && verified && user && !myReview
             ? {
                 action,
                 userId: user.id,
                 userName: user.name ?? null,
-                initialRating: myReview?.rating,
-                initialComment: myReview?.comment ?? "",
               }
             : undefined
         }

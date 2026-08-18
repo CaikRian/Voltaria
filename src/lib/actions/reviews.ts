@@ -6,6 +6,7 @@ import { requireCapability } from "@/lib/auth-helpers";
 import { hasVerifiedPurchase } from "@/lib/reviews";
 import { sanitizeText } from "@/lib/sanitize";
 import { reviewSchema } from "@/lib/validators";
+import { Prisma } from "@prisma/client";
 
 export type ReviewFormState = {
   error?: string;
@@ -33,13 +34,27 @@ export async function submitReviewAction(
     return { error: "Você só pode avaliar produtos que comprou (com pagamento confirmado)." };
   }
 
+  const existingReview = await prisma.review.findUnique({
+    where: { productId_userId: { productId, userId: user.id } },
+    select: { id: true },
+  });
+  if (existingReview) {
+    return { error: "Você já avaliou este produto. É permitida apenas uma avaliação por cliente." };
+  }
+
   const comment = parsed.data.comment ? sanitizeText(parsed.data.comment) : null;
 
-  await prisma.review.upsert({
-    where: { productId_userId: { productId, userId: user.id } },
-    update: { rating: parsed.data.rating, comment },
-    create: { productId, userId: user.id, rating: parsed.data.rating, comment },
-  });
+  try {
+    await prisma.review.create({
+      data: { productId, userId: user.id, rating: parsed.data.rating, comment },
+    });
+  } catch (error) {
+    // A constraint única também protege duas submissões simultâneas.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { error: "Você já avaliou este produto. É permitida apenas uma avaliação por cliente." };
+    }
+    throw error;
+  }
 
   revalidatePath(`/produtos/${productSlug}`);
   return { success: true };
