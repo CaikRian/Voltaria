@@ -182,6 +182,12 @@ export function getClientActions(status: OrderStatus): Array<{
   > = {
     AGUARDANDO_PAGAMENTO: [
       {
+        id: "retry",
+        label: "Continuar pagamento",
+        description: "Retomar o pagamento no Mercado Pago",
+        variant: "primary",
+      },
+      {
         id: "changeAddress",
         label: "Mudar endereço",
         description: "Altere o endereço de entrega antes do pagamento",

@@ -479,8 +479,9 @@ export async function retryPaymentAction(orderId: string): Promise<CheckoutFormS
 
   if (!order) return { error: "Pedido não encontrado." };
 
-  // Validação: só pode tentar de novo se estiver recusado
-  if (order.status !== "PAGAMENTO_RECUSADO") {
+  // Permite retomar o pagamento tanto de um pedido recusado quanto de um que
+  // ficou pendente por sair do checkout antes do fluxo MP terminar.
+  if (!["AGUARDANDO_PAGAMENTO", "PAGAMENTO_RECUSADO"].includes(order.status)) {
     return { error: "Este pedido não pode ser pago novamente." };
   }
 
@@ -530,18 +531,25 @@ export async function retryPaymentAction(orderId: string): Promise<CheckoutFormS
     const resolvedInitPoint = pref.sandbox_init_point ?? pref.init_point;
     if (!resolvedInitPoint) throw new Error("Mercado Pago não retornou init_point.");
 
-    // Atualiza preferência (idempotência)
+    // Atualiza preferência (idempotência) e mantém o pedido em aguardando.
     await prisma.order.update({
       where: { id: order.id },
-      data: { mpPreferenceId: pref.id, status: "AGUARDANDO_PAGAMENTO" },
+      data: {
+        mpPreferenceId: pref.id,
+        status: "AGUARDANDO_PAGAMENTO",
+      },
     });
 
-    // Cria evento de nova tentativa
+    // Cria evento de nova tentativa. Se o pedido já estava aguardando por saída do
+    // checkout, o evento deixa claro que foi uma continuidade do fluxo.
     await prisma.orderStatusEvent.create({
       data: {
         orderId: order.id,
         status: "AGUARDANDO_PAGAMENTO",
-        note: "Cliente tentando novamente após recusa",
+        note:
+          order.status === "PAGAMENTO_RECUSADO"
+            ? "Cliente tentando novamente após recusa"
+            : "Cliente retomou o pagamento no Mercado Pago",
       },
     });
 
