@@ -1,5 +1,8 @@
 import type { Prisma } from "@prisma/client";
+import { Payment } from "mercadopago";
 import { prisma } from "@/lib/prisma";
+import { mpClient } from "@/lib/mercadopago";
+import { mapMercadoPagoStatusToOrderStatus } from "@/lib/order-status";
 
 // Camada de leitura de pedidos — usada pelas páginas de retorno do checkout,
 // pelo webhook da Mercado Pago e pela área do cliente (/conta/pedidos).
@@ -86,4 +89,33 @@ export async function updateOrderStatus(
     }
     return order;
   });
+}
+
+// Busca o pagamento de verdade na Mercado Pago e atualiza o pedido correspondente.
+// Nunca confia em status vindo de query string/corpo — o `paymentId` é só uma
+// chave de busca, o dado usado pra decidir o status é sempre o que a API da MP
+// devolve. Usada pelo webhook (fonte primária) E pela página de retorno do
+// checkout (rede de segurança: garante que o pedido atualiza mesmo se o
+// webhook não chegar, sem esperar o cliente ficar sabendo por outro canal).
+export async function reconcilePaymentStatus(paymentId: string) {
+  const payment = await new Payment(mpClient).get({ id: paymentId });
+
+  const orderId = payment.external_reference;
+  if (!orderId) return null;
+
+  const order = await getOrderById(orderId);
+  if (!order) return null;
+
+  const newStatus = mapMercadoPagoStatusToOrderStatus(payment.status ?? "");
+
+  await updateOrderStatus(order.id, order.status, newStatus, {
+    note: payment.status_detail ?? undefined,
+    orderData: {
+      mpPaymentId: String(payment.id),
+      mpPaymentMethod: payment.payment_type_id ?? null,
+      mpStatusDetail: payment.status_detail ?? null,
+    },
+  });
+
+  return { orderId, status: newStatus };
 }

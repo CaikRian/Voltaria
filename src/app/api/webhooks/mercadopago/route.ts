@@ -1,8 +1,7 @@
+import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { Payment, WebhookSignatureValidator, InvalidWebhookSignatureError } from "mercadopago";
-import { getOrderById, updateOrderStatus } from "@/lib/orders";
-import { mpClient } from "@/lib/mercadopago";
-import { mapMercadoPagoStatusToOrderStatus } from "@/lib/order-status";
+import { WebhookSignatureValidator, InvalidWebhookSignatureError } from "mercadopago";
+import { reconcilePaymentStatus } from "@/lib/orders";
 
 // Rota pública por natureza — é a Mercado Pago quem chama, não um usuário
 // logado. Não está (nem precisa estar) no matcher do middleware.ts.
@@ -30,6 +29,23 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       if (e instanceof InvalidWebhookSignatureError) {
         console.error(`[MP Webhook] Assinatura inválida para ${dataId}:`, e.reason);
+        // DEBUG TEMPORÁRIO: nunca loga o secret, só os hashes (não são sigilosos) —
+        // pra comparar visualmente o que a MP mandou vs. o que a gente calculou.
+        // Remover depois de confirmar a causa raiz do SignatureMismatch.
+        const rawSignature = req.headers.get("x-signature");
+        const rawRequestId = req.headers.get("x-request-id");
+        console.error("[MP Webhook DEBUG] x-signature bruto:", rawSignature);
+        console.error("[MP Webhook DEBUG] x-request-id bruto:", rawRequestId);
+        const tsMatch = rawSignature?.match(/ts=([^,]+)/);
+        const v1Match = rawSignature?.match(/v1=([^,]+)/);
+        if (tsMatch && v1Match) {
+          const manifest = `id:${dataId};request-id:${rawRequestId ?? ""};ts:${tsMatch[1]};`;
+          const computed = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+          console.error("[MP Webhook DEBUG] manifest:", manifest);
+          console.error("[MP Webhook DEBUG] hash recebido (v1):", v1Match[1]);
+          console.error("[MP Webhook DEBUG] hash calculado:", computed);
+          console.error("[MP Webhook DEBUG] bateram?", computed === v1Match[1]);
+        }
         return NextResponse.json({ error: "assinatura inválida" }, { status: 401 });
       }
       throw e;
@@ -42,53 +58,22 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 2) Busca o pagamento de verdade na API da MP — nunca confia no corpo do webhook.
-  let payment;
+  // 2) Busca o pagamento de verdade na API da MP e atualiza o pedido — nunca
+  // confia no corpo/query do webhook, só usa dataId como chave de busca.
+  // Reprocessar a mesma notificação é seguro (idempotente): sempre grava o
+  // status ATUAL da MP, e só cria evento na linha do tempo se ele mudou de fato.
   try {
-    console.log(`[MP Webhook] Buscando dados do pagamento ${dataId} na Mercado Pago...`);
-    payment = await new Payment(mpClient).get({ id: dataId });
-    console.log(`[MP Webhook] Pagamento encontrado - status: ${payment.status}`);
+    console.log(`[MP Webhook] Reconciliando pagamento ${dataId}...`);
+    const result = await reconcilePaymentStatus(dataId);
+    if (!result) {
+      console.warn(`[MP Webhook] Pagamento ${dataId} sem pedido correspondente — ignorando`);
+      return NextResponse.json({ received: true }, { status: 200 });
+    }
+    console.log(`[MP Webhook] Pedido ${result.orderId} atualizado para ${result.status}`);
   } catch (e) {
-    console.error(`[MP Webhook] Falha ao buscar pagamento ${dataId}:`, e);
+    console.error(`[MP Webhook] Falha ao reconciliar pagamento ${dataId}:`, e);
     return NextResponse.json({ error: "falha ao consultar pagamento" }, { status: 500 }); // MP tenta de novo
   }
-
-  const orderId = payment.external_reference;
-  if (!orderId) {
-    console.warn(
-      `[MP Webhook] Pagamento ${dataId} sem external_reference — ignorando`
-    );
-    return NextResponse.json({ received: true }, { status: 200 });
-  }
-
-  const order = await getOrderById(orderId);
-  if (!order) {
-    console.warn(
-      `[MP Webhook] Pedido ${orderId} não encontrado para pagamento ${dataId}`
-    );
-    return NextResponse.json({ received: true }, { status: 200 });
-  }
-
-  // 3) Atualiza o pedido de forma idempotente: sempre grava o estado ATUAL buscado
-  // na MP, então reprocessar a mesma notificação nunca regride o status. O evento
-  // na linha do tempo só é criado se o status realmente mudou (guarda dentro de
-  // updateOrderStatus), evitando duplicar entradas em notificações repetidas.
-  const newStatus = mapMercadoPagoStatusToOrderStatus(payment.status ?? "");
-
-  console.log(
-    `[MP Webhook] Atualizando pedido ${orderId}: ${order.status} → ${newStatus}`
-  );
-
-  await updateOrderStatus(order.id, order.status, newStatus, {
-    note: payment.status_detail ?? undefined,
-    orderData: {
-      mpPaymentId: String(payment.id),
-      mpPaymentMethod: payment.payment_type_id ?? null,
-      mpStatusDetail: payment.status_detail ?? null,
-    },
-  });
-
-  console.log(`[MP Webhook] Pedido ${orderId} atualizado com sucesso`);
 
   return NextResponse.json({ received: true }, { status: 200 });
 }
