@@ -19,7 +19,13 @@ export async function getOrderById(id: string) {
 export async function getOrdersByUser(userId: string) {
   return prisma.order.findMany({
     where: { userId },
-    include: { _count: { select: { items: true } } },
+    include: {
+      items: {
+        select: { id: true, productName: true, variantName: true, qty: true },
+        orderBy: { id: "asc" },
+      },
+      _count: { select: { items: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
 }
