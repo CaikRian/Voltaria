@@ -7,6 +7,7 @@ import { CartDrawer } from "@/components/CartDrawer";
 import { Providers } from "@/components/Providers";
 import { PageTransition } from "@/components/PageTransition";
 import { NavigationProgress } from "@/components/NavigationProgress";
+import { CookieConsent } from "@/components/CookiePreferences";
 import { Suspense } from "react";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </main>
           <Footer />
           <CartDrawer />
+          <CookieConsent />
         </Providers>
       </body>
     </html>
