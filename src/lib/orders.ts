@@ -40,6 +40,20 @@ export async function getOrderForUser(id: string, userId: string) {
   });
 }
 
+// Sem integração com transportadora — só monta o link público dos Correios quando
+// o vendedor colou só o código (sem link próprio) e ele bate com o padrão deles
+// (2 letras + 9 dígitos + 2 letras, ex. AA123456789BR). Qualquer link colado
+// manualmente tem prioridade — cobre outras transportadoras.
+const CORREIOS_CODE_RE = /^[A-Z]{2}\d{9}[A-Z]{2}$/;
+
+export function resolveTrackingUrl(code?: string | null, url?: string | null) {
+  if (url) return url;
+  if (code && CORREIOS_CODE_RE.test(code.toUpperCase())) {
+    return `https://rastreamento.correios.com.br/app/index.php?objetos=${code}`;
+  }
+  return null;
+}
+
 export function getOrderTrackingHint(statusEvents: { note?: string | null }[] = []) {
   const note = [...statusEvents]
     .reverse()

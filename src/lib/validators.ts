@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { SHIPPING_OPTION_IDS } from "@/lib/shipping";
+import { ORDER_STATUS } from "@/lib/order-status";
 
 export const loginSchema = z.object({
   email: z.string().email("E-mail inválido"),
@@ -123,16 +124,16 @@ export const checkoutSchema = z.object({
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 
 // --- Pedidos (painel) ---
-export const ORDER_STATUSES = ["PENDENTE", "PAGO", "ENVIADO", "ENTREGUE", "CANCELADO"] as const;
-
 export const orderStatusSchema = z.object({
-  status: z.enum(ORDER_STATUSES),
+  status: z.nativeEnum(ORDER_STATUS),
   note: z
     .string()
     .trim()
     .max(280, "Nota muito longa (máx. 280 caracteres)")
     .optional()
     .or(z.literal("")),
+  trackingCode: z.string().trim().max(60).optional().or(z.literal("")),
+  trackingUrl: z.string().trim().url("Link inválido").optional().or(z.literal("")),
 });
 
 // --- Avaliações (Review) ---

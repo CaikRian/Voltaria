@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth-helpers";
-import { getOrderForUser } from "@/lib/orders";
+import { getOrderForUser, resolveTrackingUrl } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
 import { formatBRL } from "@/lib/format";
 import { MP_PAYMENT_METHOD_LABELS } from "@/lib/mercadopago";
@@ -25,6 +25,7 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
 
   const statusMeta = STATUS_META[order.status as keyof typeof STATUS_META];
   const trackingNote = getOrderTrackingHint(order.statusEvents);
+  const trackingUrl = resolveTrackingUrl(order.trackingCode, order.trackingUrl);
   const productIds = [...new Set(order.items.map((item) => item.productId))];
   const productSlugs = await prisma.product.findMany({
     where: { id: { in: productIds } },
@@ -156,15 +157,30 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
               status={order.status}
               reviewLinks={reviewLinks}
               trackingNote={trackingNote}
+              trackingUrl={trackingUrl}
             />
           </div>
 
           {order.status === "ENVIADO" || order.status === "ENTREGUE" ? (
             <div className="rounded-xl2 border border-line bg-paper p-4">
               <p className="mb-2 text-sm font-medium">Rastreamento</p>
-              <p className="text-sm text-ink-soft">
-                {trackingNote || "Acompanhe seu pedido pela transportadora ou com o vendedor."}
-              </p>
+              {order.trackingCode && (
+                <p className="font-mono text-sm text-ink-soft">{order.trackingCode}</p>
+              )}
+              {trackingUrl ? (
+                <a
+                  href={trackingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 inline-block text-sm text-brand hover:underline"
+                >
+                  Rastrear pacote →
+                </a>
+              ) : (
+                <p className="text-sm text-ink-soft">
+                  {trackingNote || "Acompanhe seu pedido pela transportadora ou com o vendedor."}
+                </p>
+              )}
             </div>
           ) : null}
         </aside>

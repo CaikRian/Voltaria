@@ -5,6 +5,7 @@ import { getAdminOrder } from "@/lib/admin";
 import { getCurrentUser } from "@/lib/auth-helpers";
 import { can } from "@/lib/permissions";
 import { formatBRL } from "@/lib/format";
+import { resolveTrackingUrl } from "@/lib/orders";
 import { updateOrderStatusAction } from "@/lib/actions/orders";
 import { MP_PAYMENT_METHOD_LABELS } from "@/lib/mercadopago";
 import { OrderStatusBadge } from "@/components/OrderStatusBadge";
@@ -22,6 +23,7 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
 
   const canUpdateStatus = can(user?.role, "order:update:status");
   const action = updateOrderStatusAction.bind(null, order.id);
+  const trackingUrl = resolveTrackingUrl(order.trackingCode, order.trackingUrl);
 
   const timeline = [...order.statusEvents, ...order.messages].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -174,6 +176,23 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
                 {order.shipNeighborhood}, {order.shipCity}/{order.shipState}
               </p>
               <p className="text-sm text-ink-muted">CEP {order.shipCep}</p>
+            </div>
+          )}
+
+          {order.trackingCode && (
+            <div className="rounded-xl2 border border-line bg-paper p-4">
+              <p className="mb-2 text-sm font-medium">Rastreamento</p>
+              <p className="font-mono text-sm text-ink-soft">{order.trackingCode}</p>
+              {trackingUrl && (
+                <a
+                  href={trackingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 inline-block text-sm text-brand hover:underline"
+                >
+                  Ver rastreamento →
+                </a>
+              )}
             </div>
           )}
 

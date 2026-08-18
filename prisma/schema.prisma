@@ -185,6 +185,13 @@ model Order {
   shippingCents  Int? // valor efetivamente cobrado (0 = grátis; null = pedido legado)
   shippingMethod String? // rótulo da opção escolhida, ex.: "Econômico — 2 a 4 dias úteis"
 
+  // --- Rastreamento de envio ---
+  // Sem integração com API de transportadora — o vendedor cola o código/link que
+  // recebeu. Se só o código vier e bater com o padrão dos Correios, a tela monta
+  // o link público sozinha (ver resolveTrackingUrl em lib/orders.ts).
+  trackingCode String?
+  trackingUrl  String?
+
   // --- Chat do pedido ---
   // Quem deve responder agora: "STAFF" (cliente mandou última msg, equipe deve
   // responder) ou "CLIENTE" (equipe respondeu, aguardando cliente). Null = sem

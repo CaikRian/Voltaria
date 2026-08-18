@@ -16,11 +16,13 @@ export function OrderClientActions({
   status,
   reviewLinks = [],
   trackingNote,
+  trackingUrl,
 }: {
   orderId: string;
   status: string;
   reviewLinks?: Array<{ id: string; label: string; href: string }>;
   trackingNote?: string | null;
+  trackingUrl?: string | null;
 }) {
   const [showModal, setShowModal] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -178,9 +180,21 @@ export function OrderClientActions({
         <Modal title="Rastrear pedido" onClose={() => setShowModal(null)}>
           <div className="flex flex-col gap-3">
             <p className="text-sm text-gray-600">
-              {trackingNote ||
-                "Seu pedido foi enviado e está em trânsito. Você pode acompanhar com a transportadora ou entrar em contato com a nossa equipe."}
+              {trackingUrl
+                ? "Seu pedido foi enviado e está em trânsito."
+                : trackingNote ||
+                  "Seu pedido foi enviado e está em trânsito. Você pode acompanhar com a transportadora ou entrar em contato com a nossa equipe."}
             </p>
+            {trackingUrl && (
+              <a
+                href={trackingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded border border-line bg-gray-50 px-3 py-2 text-center text-sm font-medium text-blue-600 hover:bg-gray-100 hover:underline"
+              >
+                Rastrear pacote →
+              </a>
+            )}
             <Button variant="secondary" onClick={() => setShowModal(null)} className="w-full">
               Fechar
             </Button>

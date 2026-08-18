@@ -10,6 +10,7 @@ import { getProductsByIds } from "@/lib/products";
 import { resolveShippingCents } from "@/lib/shipping";
 import { mpClient } from "@/lib/mercadopago";
 import { updateOrderStatus } from "@/lib/orders";
+import { isValidStatusTransition, type OrderStatus } from "@/lib/order-status";
 import { checkoutSchema, orderStatusSchema, type CheckoutInput } from "@/lib/validators";
 
 export type CheckoutFormState = {
@@ -228,14 +229,29 @@ export async function updateOrderStatusAction(
   const parsed = orderStatusSchema.safeParse({
     status: formData.get("status"),
     note: formData.get("note") ?? "",
+    trackingCode: formData.get("trackingCode") ?? "",
+    trackingUrl: formData.get("trackingUrl") ?? "",
   });
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
 
   const order = await prisma.order.findUnique({ where: { id: orderId }, select: { status: true } });
   if (!order) return { error: "Pedido não encontrado." };
 
+  // Só bloqueia transições de verdade — resubmeter o mesmo status (ex.: só pra
+  // atualizar o código de rastreio) é sempre permitido.
+  if (
+    parsed.data.status !== order.status &&
+    !isValidStatusTransition(order.status as OrderStatus, parsed.data.status)
+  ) {
+    return { error: "Transição de status inválida." };
+  }
+
   await updateOrderStatus(orderId, order.status, parsed.data.status, {
     note: parsed.data.note || undefined,
+    orderData: {
+      ...(parsed.data.trackingCode ? { trackingCode: parsed.data.trackingCode } : {}),
+      ...(parsed.data.trackingUrl ? { trackingUrl: parsed.data.trackingUrl } : {}),
+    },
   });
 
   revalidatePath("/painel/pedidos");

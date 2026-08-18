@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getAdminOrders } from "@/lib/admin";
 import { formatBRL } from "@/lib/format";
-import { ORDER_STATUSES } from "@/lib/validators";
+import { ORDER_STATUS, STATUS_META } from "@/lib/order-status";
 import { OrderStatusBadge } from "@/components/OrderStatusBadge";
 
 export const metadata: Metadata = { title: "Pedidos · Painel" };
@@ -15,7 +15,10 @@ export default async function PainelPedidosPage({ searchParams }: { searchParams
 
   const tabs = [
     { label: "Todos", value: undefined as string | undefined },
-    ...ORDER_STATUSES.map((s) => ({ label: s, value: s as string | undefined })),
+    ...Object.values(ORDER_STATUS).map((s) => ({
+      label: STATUS_META[s].label,
+      value: s as string | undefined,
+    })),
   ];
 
   return (
