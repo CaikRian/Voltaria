@@ -96,11 +96,24 @@ export function OrderTimeline({
   const progressIndex = currentIndex >= 0
     ? currentIndex
     : Math.min(furthestReached + 1, MAIN_FLOW.length);
-  const notes = events.filter(
-    (event, index, list) =>
-      event.note &&
-      list.findIndex((candidate) => candidate.status === event.status && candidate.note === event.note) === index
-  );
+  const updates: StatusEvent[] = [
+    {
+      id: "order-created",
+      status: "AGUARDANDO_PAGAMENTO",
+      note: "Pedido criado e recebido pela loja.",
+      createdAt,
+    },
+  ];
+  for (const event of events) {
+    const previous = updates.at(-1);
+    const isNearDuplicate =
+      previous?.status === event.status &&
+      previous.note === event.note &&
+      Math.abs(new Date(event.createdAt).getTime() - new Date(previous.createdAt).getTime()) < 60_000;
+    if (!isNearDuplicate && !(event.status === "AGUARDANDO_PAGAMENTO" && event.note == null)) {
+      updates.push(event);
+    }
+  }
 
   return (
     <div className="rounded-xl2 border border-line bg-paper p-5 sm:p-6">
@@ -175,19 +188,27 @@ export function OrderTimeline({
         </div>
       )}
 
-      {notes.length > 0 && (
-        <div className="mt-5 border-t border-line pt-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">Atualizações</p>
-          <ul className="space-y-2 text-sm text-ink-soft">
-            {notes.map((event) => (
-              <li key={event.id}>
-                <span className="font-medium">{STATUS_META[event.status as OrderStatus]?.label ?? event.status}:</span>{" "}
-                {event.note}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <div className="mt-5 border-t border-line pt-4">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-muted">Atualizações</p>
+        <ul className="space-y-3">
+          {updates.map((event) => (
+            <li key={event.id} className="grid grid-cols-[8px_1fr] gap-3 text-sm">
+              <span className="mt-1.5 h-2 w-2 rounded-full bg-brand" />
+              <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+                <p className="text-ink-soft">
+                  <span className="font-medium text-ink">
+                    {STATUS_META[event.status as OrderStatus]?.label ?? event.status}
+                  </span>
+                  {event.note ? ` — ${event.note}` : ""}
+                </p>
+                <time className="shrink-0 text-xs text-ink-muted">
+                  {formatEventDate(event.createdAt)}
+                </time>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
