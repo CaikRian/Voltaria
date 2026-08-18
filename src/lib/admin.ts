@@ -45,11 +45,17 @@ export async function getSellerDashboardSummary() {
   // respondeu (awaitingReplyFrom === "STAFF"). Antes isso checava "o pedido já
   // teve alguma mensagem de cliente" — o que deixava o card preso em "pendente"
   // pra sempre, mesmo depois da equipe responder.
-  const [awaitingApproval, refundRequests, pendingShipment, chatPending, pendingMessages] = await Promise.all([
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const paidStatuses = ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO", "ENVIADO", "ENTREGUE"];
+
+  const [awaitingApproval, refundRequests, pendingShipment, chatPending, unansweredQuestions, pendingMessages, salesToday, salesMonth, recentOrders, products] = await Promise.all([
     prisma.order.count({ where: { status: "AGUARDANDO_PAGAMENTO" } }),
     prisma.order.count({ where: { status: "REEMBOLSO_SOLICITADO" } }),
     prisma.order.count({ where: { status: { in: ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO"] } } }),
     prisma.order.count({ where: { awaitingReplyFrom: "STAFF", chatClosedAt: null } }),
+    prisma.question.count({ where: { answeredAt: null, hidden: false } }),
     prisma.order.findMany({
       where: { awaitingReplyFrom: "STAFF", chatClosedAt: null },
       select: {
@@ -66,15 +72,50 @@ export async function getSellerDashboardSummary() {
       orderBy: { updatedAt: "desc" },
       take: 4,
     }),
+    prisma.order.aggregate({ where: { status: { in: paidStatuses }, createdAt: { gte: startOfDay } }, _count: true, _sum: { totalCents: true } }),
+    prisma.order.aggregate({ where: { status: { in: paidStatuses }, createdAt: { gte: startOfMonth } }, _count: true, _sum: { totalCents: true } }),
+    prisma.order.findMany({
+      select: { id: true, email: true, status: true, totalCents: true, createdAt: true, _count: { select: { items: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    }),
+    prisma.product.findMany({
+      select: { id: true, name: true, imageUrl: true, active: true, stock: true, variants: { select: { stock: true } } },
+    }),
   ]);
+
+  const inventory = products.map((product) => ({
+    id: product.id,
+    name: product.name,
+    imageUrl: product.imageUrl,
+    active: product.active,
+    stock: product.variants.length ? product.variants.reduce((total, variant) => total + variant.stock, 0) : product.stock,
+  }));
+  const lowStockProducts = inventory.filter((product) => product.active && product.stock <= 5).sort((a, b) => a.stock - b.stock).slice(0, 5);
 
   return {
     awaitingApproval,
     refundRequests,
     pendingShipment,
     chatPending,
+    unansweredQuestions,
     pendingMessages,
+    salesToday: { count: salesToday._count, cents: salesToday._sum.totalCents ?? 0 },
+    salesMonth: { count: salesMonth._count, cents: salesMonth._sum.totalCents ?? 0 },
+    activeProducts: inventory.filter((product) => product.active).length,
+    lowStockCount: inventory.filter((product) => product.active && product.stock <= 5).length,
+    lowStockProducts,
+    recentOrders,
   };
+}
+
+export async function getPanelNavigationCounts() {
+  const [questions, chats, refunds] = await Promise.all([
+    prisma.question.count({ where: { answeredAt: null, hidden: false } }),
+    prisma.order.count({ where: { awaitingReplyFrom: "STAFF", chatClosedAt: null } }),
+    prisma.order.count({ where: { status: "REEMBOLSO_SOLICITADO" } }),
+  ]);
+  return { questions, chats, refunds };
 }
 
 export async function getAdminOrder(id: string) {
