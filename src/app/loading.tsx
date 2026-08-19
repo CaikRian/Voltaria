@@ -5,7 +5,7 @@ export default function GlobalLoading() {
         <div className="relative mx-auto h-20 w-20">
           <span className="absolute inset-0 rounded-2xl bg-brand-soft motion-safe:animate-ping" />
           <span className="relative grid h-20 w-20 place-items-center rounded-2xl bg-brand font-display text-3xl font-bold text-white shadow-pop motion-safe:animate-[loading-float_1.4s_ease-in-out_infinite]">
-            V
+            H
           </span>
         </div>
         <p className="mt-6 font-display text-lg font-semibold">Preparando tudo para você</p>

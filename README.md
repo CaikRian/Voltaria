@@ -1,4 +1,4 @@
-# Voltaria — E-commerce (Next.js 15 + Prisma)
+# Heca - Store — E-commerce (Next.js 15 + Prisma)
 
 Loja de eletrônicos e produtos gerais. Base pronta para produção: catálogo,
 carrinho persistente, checkout preparado para Mercado Pago, SEO e design responsivo.
@@ -23,10 +23,10 @@ Login por e-mail/senha (hash bcrypt) + Google opcional, via **Auth.js (NextAuth 
 
 | E-mail | Papel | Acessa o painel? |
 |---|---|:---:|
-| `admin@voltaria.com` | Administrador | ✅ tudo |
-| `gerente@voltaria.com` | Gerente | ✅ + preços/usuários |
-| `vendedor@voltaria.com` | Vendedor | ✅ produtos/pedidos |
-| `cliente@voltaria.com` | Cliente | ❌ (só área do cliente) |
+| `admin@hecabrasil.com.br` | Administrador | ✅ tudo |
+| `gerente@hecabrasil.com.br` | Gerente | ✅ + preços/usuários |
+| `vendedor@hecabrasil.com.br` | Vendedor | ✅ produtos/pedidos |
+| `cliente@hecabrasil.com.br` | Cliente | ❌ (só área do cliente) |
 
 ### Configuração
 

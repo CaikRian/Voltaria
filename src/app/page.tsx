@@ -26,7 +26,7 @@ export default async function HomePage() {
               <span className="h-2 w-2 rounded-full bg-ok" /> Frete grátis acima de R$ 299
             </span>
             <h1 className="mt-5 font-display text-4xl font-bold leading-[1.08] tracking-tight sm:text-6xl">
-              Produtos que facilitam sua rotina e{" "}<span className="text-[#8DA7FF]">cabem no seu bolso.</span>
+              Produtos que facilitam sua rotina e{" "}<span className="text-[#E0A8FF]">cabem no seu bolso.</span>
             </h1>
             <p className="mt-5 max-w-xl text-base leading-7 text-white/70 sm:text-lg">
               Tecnologia e utilidades escolhidas para você comprar com confiança, pagar com segurança e receber onde estiver.
@@ -103,7 +103,7 @@ export default async function HomePage() {
       {/* Destaques */}
       <section className="container-x py-12 sm:py-16">
         <div className="mb-6 flex items-end justify-between">
-          <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">Escolhas da Voltaria</p><h2 className="mt-2 font-display text-2xl font-semibold sm:text-3xl">Ofertas para aproveitar</h2></div>
+          <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">Escolhas da Heca - Store</p><h2 className="mt-2 font-display text-2xl font-semibold sm:text-3xl">Ofertas para aproveitar</h2></div>
           <Link href="/produtos" className="text-sm font-medium text-brand hover:underline">
             Ver tudo →
           </Link>
@@ -119,7 +119,7 @@ export default async function HomePage() {
         <div className="relative overflow-hidden rounded-xl2 bg-ink px-6 py-10 text-white shadow-pop sm:px-10">
           <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-brand/40 blur-3xl" />
           <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div><p className="text-sm font-semibold text-[#AFC0FF]">Sua próxima descoberta está aqui</p><h2 className="mt-2 max-w-xl font-display text-3xl font-semibold">Escolha com calma. Compre com confiança.</h2><p className="mt-2 max-w-xl text-sm leading-6 text-white/65">Compare produtos, calcule o frete e finalize com a segurança do Mercado Pago.</p></div>
+            <div><p className="text-sm font-semibold text-[#E8C3FF]">Sua próxima descoberta está aqui</p><h2 className="mt-2 max-w-xl font-display text-3xl font-semibold">Escolha com calma. Compre com confiança.</h2><p className="mt-2 max-w-xl text-sm leading-6 text-white/65">Compare produtos, calcule o frete e finalize com a segurança do Mercado Pago.</p></div>
             <ButtonLink href="/produtos" size="lg" className="shrink-0">Ver todos os produtos</ButtonLink>
           </div>
         </div>

@@ -6,19 +6,19 @@ const config: Config = {
     extend: {
       colors: {
         ink: {
-          DEFAULT: "#0E1420", // texto principal / navy quase preto
-          soft: "#3A4356", // texto secundário
-          muted: "#697386", // legendas
+          DEFAULT: "#09070D", // preto profundo da identidade Heca
+          soft: "#403849", // texto secundário com fundo violeta
+          muted: "#756B7D", // legendas
         },
         paper: "#FFFFFF",
-        mist: "#F4F5F7", // fundo da página
-        line: "#E4E7EC", // bordas
+        mist: "#F8F5FA", // fundo lilás quase branco
+        line: "#E8DFED", // bordas
         brand: {
-          DEFAULT: "#2F5BFF", // azul elétrico — CTA principal
-          dark: "#1E3FD6", // hover
-          soft: "#EEF2FF", // fundo suave
+          DEFAULT: "#A100FF", // roxo choque — CTA principal
+          dark: "#6900A8", // hover e contraste
+          soft: "#F5E8FF", // fundo suave
         },
-        deal: "#FF4D3D", // coral — descontos / ofertas
+        deal: "#FF2D95", // rosa elétrico — descontos / ofertas
         ok: "#12B76A", // em estoque / sucesso
       },
       fontFamily: {
@@ -26,8 +26,8 @@ const config: Config = {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        card: "0 1px 2px rgba(14,20,32,0.04), 0 8px 24px rgba(14,20,32,0.06)",
-        pop: "0 12px 40px rgba(14,20,32,0.12)",
+        card: "0 1px 2px rgba(9,7,13,0.05), 0 8px 24px rgba(57,0,87,0.08)",
+        pop: "0 12px 40px rgba(57,0,87,0.16)",
       },
       borderRadius: {
         xl2: "1.25rem",

@@ -52,7 +52,7 @@ export default async function ProductPage({ params }: { params: Params }) {
     name: product.name,
     description: product.description,
     image: productImages,
-    brand: { "@type": "Brand", name: product.brand ?? "Voltaria" },
+    brand: { "@type": "Brand", name: product.brand ?? "Heca - Store" },
     offers: {
       "@type": "Offer",
       priceCurrency: "BRL",

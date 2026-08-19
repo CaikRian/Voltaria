@@ -68,9 +68,9 @@ export function Header() {
         {/* Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-white font-display font-bold">
-            V
+            H
           </span>
-          <span className="hidden font-display text-lg font-semibold sm:block">Voltaria</span>
+          <span className="hidden font-display text-lg font-semibold sm:block">Heca - Store</span>
         </Link>
 
         {/* Busca */}

@@ -30,17 +30,17 @@ export async function GET(request: Request) {
     funil: analytics.funnel, páginas: analytics.pages, produtos: analytics.products, dispositivos: analytics.devices,
     navegadores: analytics.browsers, origens: analytics.sources, entradas: analytics.entries, saídas: analytics.exits, evoluçãoDiária: analytics.daily,
   };
-  const filename = `voltaria-web-analise-${new Date().toISOString().slice(0,10)}`;
+  const filename = `heca-store-web-analise-${new Date().toISOString().slice(0,10)}`;
   if (format === "json") return download(JSON.stringify({ resumo: summary, acessos: rows, limitado: analytics.total > visits.length }, null, 2), "application/json; charset=utf-8", `${filename}.json`);
   const headers = Object.keys(rows[0] ?? { Informação: "Sem acessos" });
   if (format === "csv") {
-    const lines = [["Relatório Web análise Voltaria"], ["Período", analytics.range.label], ["Visualizações", analytics.total], ["Visitantes", analytics.visitors], ["Sessões", analytics.sessions], [], headers, ...rows.map((row) => headers.map((header) => row[header as keyof typeof row] ?? ""))];
+    const lines = [["Relatório Web análise Heca - Store"], ["Período", analytics.range.label], ["Visualizações", analytics.total], ["Visitantes", analytics.visitors], ["Sessões", analytics.sessions], [], headers, ...rows.map((row) => headers.map((header) => row[header as keyof typeof row] ?? ""))];
     const csv = lines.map((line) => line.map((cell) => `"${clean(cell).replace(/"/g, '""')}"`).join(";")).join("\r\n");
     return download(`\uFEFF${csv}`, "text/csv; charset=utf-8", `${filename}.csv`);
   }
   if (format === "xlsx") {
     const writeXlsxFile = (await import("write-excel-file/node")).default;
-    const title = (value: string) => ({ value, fontWeight: "bold" as const, backgroundColor: "#17358F", color: "#FFFFFF" });
+    const title = (value: string) => ({ value, fontWeight: "bold" as const, backgroundColor: "#A100FF", color: "#FFFFFF" });
     const insightRows = [
       ["Funil", `Sessões ${analytics.funnel.sessions} · Produtos ${analytics.funnel.product} · Checkout ${analytics.funnel.checkout} · Sucesso ${analytics.funnel.purchase}`],
       ["Páginas", analytics.pages.map((item)=>`${item.label}: ${item.views}`).join(" · ")],
@@ -49,13 +49,13 @@ export async function GET(request: Request) {
       ["Navegadores", analytics.browsers.map((item)=>`${item.name}: ${item.count}`).join(" · ")],
       ["Origens", analytics.sources.map((item)=>`${item.name}: ${item.count}`).join(" · ")],
     ];
-    const sheet = [[title("Relatório Web análise Voltaria")], [{value:"Período",fontWeight:"bold" as const},{value:analytics.range.label}], [{value:"Visualizações",fontWeight:"bold" as const},{value:analytics.total}], [{value:"Visitantes",fontWeight:"bold" as const},{value:analytics.visitors}], [{value:"Sessões",fontWeight:"bold" as const},{value:analytics.sessions}], ...insightRows.map(([label,value])=>[{value:label,fontWeight:"bold" as const},{value,wrap:true}]), [], headers.map(title), ...rows.map((row) => headers.map((header) => ({ value: String(row[header as keyof typeof row] ?? ""), wrap: true })))]
+    const sheet = [[title("Relatório Web análise Heca - Store")], [{value:"Período",fontWeight:"bold" as const},{value:analytics.range.label}], [{value:"Visualizações",fontWeight:"bold" as const},{value:analytics.total}], [{value:"Visitantes",fontWeight:"bold" as const},{value:analytics.visitors}], [{value:"Sessões",fontWeight:"bold" as const},{value:analytics.sessions}], ...insightRows.map(([label,value])=>[{value:label,fontWeight:"bold" as const},{value,wrap:true}]), [], headers.map(title), ...rows.map((row) => headers.map((header) => ({ value: String(row[header as keyof typeof row] ?? ""), wrap: true })))]
     const file = await writeXlsxFile(sheet, { columns: headers.map((header) => ({ width: Math.min(38, Math.max(15, header.length + 4)) })) });
     const buffer = await file.toBuffer(); return new NextResponse(new Uint8Array(buffer), { headers: fileHeaders("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", `${filename}.xlsx`) });
   }
   const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib"); const pdf = await PDFDocument.create(); const regular = await pdf.embedFont(StandardFonts.Helvetica); const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   let page = pdf.addPage([842,595]); let y = 490;
-  const header = () => { page.drawRectangle({x:0,y:515,width:842,height:80,color:rgb(.07,.2,.52)}); page.drawText("Voltaria - Relatorio de Web Analise",{x:36,y:555,size:21,font:bold,color:rgb(1,1,1)}); page.drawText(clean(analytics.range.label).normalize("NFD").replace(/[\u0300-\u036f]/g,""),{x:36,y:532,size:10,font:regular,color:rgb(.82,.88,1)}); y=490; }; header();
+  const header = () => { page.drawRectangle({x:0,y:515,width:842,height:80,color:rgb(.18,0,.28)}); page.drawText("Heca - Store - Relatorio de Web Analise",{x:36,y:555,size:21,font:bold,color:rgb(1,1,1)}); page.drawText(clean(analytics.range.label).normalize("NFD").replace(/[\u0300-\u036f]/g,""),{x:36,y:532,size:10,font:regular,color:rgb(.82,.88,1)}); y=490; }; header();
   const draw = (value:string,size=9,strong=false) => { if(y<38){page=pdf.addPage([842,595]);header();} page.drawText(clean(value).normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^\x20-\x7E]/g," ").slice(0,145),{x:36,y,size,font:strong?bold:regular,color:rgb(.1,.13,.2)}); y-=size+7; };
   draw(`Visualizacoes: ${analytics.total}   Visitantes: ${analytics.visitors}   Sessoes: ${analytics.sessions}   Rejeicao: ${analytics.bounceRate}%`,11,true); draw(`Permanencia media: ${seconds(analytics.avgDurationMs)}s   Produto > checkout > sucesso: ${analytics.funnel.product} > ${analytics.funnel.checkout} > ${analytics.funnel.purchase}`); y-=8;
   draw("Paginas mais acessadas",11,true); analytics.pages.forEach((item)=>draw(`${item.label}: ${item.views} visualizacoes, ${item.visitors} visitantes, media ${seconds(item.avgDurationMs)}s`)); y-=6;

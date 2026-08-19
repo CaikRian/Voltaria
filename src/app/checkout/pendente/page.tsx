@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { OrderStatusView } from "../OrderStatusView";
 
-export const metadata: Metadata = { title: "Pagamento em processamento — Voltaria" };
+export const metadata: Metadata = { title: "Pagamento em processamento — Heca - Store" };
 
 type SearchParams = Promise<{ order?: string }>;
 

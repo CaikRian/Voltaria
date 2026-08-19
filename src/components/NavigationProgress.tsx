@@ -42,7 +42,7 @@ export function NavigationProgress() {
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[100] h-1 overflow-hidden bg-brand-soft" role="progressbar" aria-label="Carregando página">
-      <span className="block h-full w-1/3 bg-brand shadow-[0_0_12px_rgba(47,91,255,0.8)] motion-safe:animate-[navigation-progress_1s_ease-in-out_infinite]" />
+      <span className="block h-full w-1/3 bg-brand shadow-[0_0_14px_rgba(161,0,255,0.85)] motion-safe:animate-[navigation-progress_1s_ease-in-out_infinite]" />
     </div>
   );
 }

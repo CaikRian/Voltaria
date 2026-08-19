@@ -32,10 +32,10 @@ async function main() {
   const senhaHash = await bcrypt.hash("Senha123", 12);
   await prisma.user.createMany({
     data: [
-      { email: "admin@voltaria.com", name: "Ana Admin", role: "ADMIN", passwordHash: senhaHash },
-      { email: "gerente@voltaria.com", name: "Gabriel Gerente", role: "GERENTE", passwordHash: senhaHash },
-      { email: "vendedor@voltaria.com", name: "Vera Vendedora", role: "VENDEDOR", passwordHash: senhaHash },
-      { email: "cliente@voltaria.com", name: "Carlos Cliente", role: "CLIENTE", passwordHash: senhaHash },
+      { email: "admin@hecabrasil.com.br", name: "Ana Admin", role: "ADMIN", passwordHash: senhaHash },
+      { email: "gerente@hecabrasil.com.br", name: "Gabriel Gerente", role: "GERENTE", passwordHash: senhaHash },
+      { email: "vendedor@hecabrasil.com.br", name: "Vera Vendedora", role: "VENDEDOR", passwordHash: senhaHash },
+      { email: "cliente@hecabrasil.com.br", name: "Carlos Cliente", role: "CLIENTE", passwordHash: senhaHash },
     ],
   });
 
