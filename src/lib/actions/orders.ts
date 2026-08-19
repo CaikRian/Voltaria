@@ -536,6 +536,7 @@ export async function retryPaymentAction(orderId: string): Promise<CheckoutFormS
   }
 
   const preferenceClient = new Preference(mpClient);
+  let initPoint: string;
 
   try {
     const items = order.items.map((i) => ({
@@ -575,6 +576,7 @@ export async function retryPaymentAction(orderId: string): Promise<CheckoutFormS
 
     const resolvedInitPoint = pref.sandbox_init_point ?? pref.init_point;
     if (!resolvedInitPoint) throw new Error("Mercado Pago não retornou init_point.");
+    initPoint = resolvedInitPoint;
 
     // Atualiza preferência (idempotência) e mantém o pedido em aguardando.
     await prisma.order.update({
@@ -597,12 +599,14 @@ export async function retryPaymentAction(orderId: string): Promise<CheckoutFormS
             : "Cliente retomou o pagamento no Mercado Pago",
       },
     });
-
-    redirect(resolvedInitPoint);
   } catch (e) {
     console.error("Falha ao tentar pagamento novamente:", e);
     return { error: "Não foi possível gerar nova tentativa de pagamento. Tente novamente." };
   }
+
+  // Fora do try/catch: redirect() lança internamente (NEXT_REDIRECT) e precisa
+  // propagar, mesmo padrão usado em checkoutAction acima.
+  redirect(initPoint);
 }
 
 /**
