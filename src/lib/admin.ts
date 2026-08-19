@@ -173,21 +173,51 @@ export async function getPanelNavigationCounts() {
   return { questions, chats, refunds };
 }
 
-export async function getAdminConversations(filter: "open" | "waiting" | "closed" | "all" = "open") {
-  return prisma.order.findMany({
-    where: {
-      messages: { some: {} },
-      ...(filter === "waiting" ? { awaitingReplyFrom: "STAFF", chatClosedAt: null } : {}),
-      ...(filter === "closed" ? { chatClosedAt: { not: null } } : {}),
-      ...(filter === "open" ? { chatClosedAt: null } : {}),
-    },
-    select: {
-      id: true, email: true, status: true, awaitingReplyFrom: true, chatClosedAt: true, updatedAt: true,
-      messages: { orderBy: { createdAt: "desc" }, take: 1, select: { id: true, text: true, senderRole: true, createdAt: true } },
-      _count: { select: { messages: true } },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+export async function getAdminConversations(opts: {
+  queue?: "open" | "waiting" | "customer" | "closed" | "all";
+  q?: string;
+  status?: string;
+  sort?: "recent" | "oldest" | "messages" | "order";
+  page?: number;
+  pageSize?: number;
+} = {}) {
+  const queue = opts.queue ?? "open";
+  const page = Math.max(opts.page ?? 1, 1);
+  const pageSize = Math.min(Math.max(opts.pageSize ?? 10, 5), 30);
+  const where = {
+    messages: { some: {} },
+    ...(queue === "waiting" ? { awaitingReplyFrom: "STAFF", chatClosedAt: null }
+      : queue === "customer" ? { awaitingReplyFrom: "CLIENTE", chatClosedAt: null }
+      : queue === "closed" ? { chatClosedAt: { not: null } }
+      : queue === "open" ? { chatClosedAt: null }
+      : {}),
+    ...(opts.status ? { status: opts.status } : {}),
+    ...(opts.q ? { OR: [{ id: { contains: opts.q } }, { email: { contains: opts.q } }, { shipName: { contains: opts.q } }] } : {}),
+  };
+  const orderBy = opts.sort === "oldest" ? { updatedAt: "asc" as const }
+    : opts.sort === "messages" ? { messages: { _count: "desc" as const } }
+    : opts.sort === "order" ? { createdAt: "desc" as const }
+    : { updatedAt: "desc" as const };
+  const [conversations, total, open, waiting, customer, closed] = await Promise.all([
+    prisma.order.findMany({
+      where,
+      select: {
+        id: true, email: true, shipName: true, totalCents: true, status: true, awaitingReplyFrom: true,
+        chatClosedAt: true, createdAt: true, updatedAt: true,
+        messages: { orderBy: { createdAt: "desc" }, take: 1, select: { id: true, text: true, senderRole: true, createdAt: true, user: { select: { name: true } } } },
+        _count: { select: { messages: true, items: true } },
+      },
+      orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.order.count({ where }),
+    prisma.order.count({ where: { messages: { some: {} }, chatClosedAt: null } }),
+    prisma.order.count({ where: { messages: { some: {} }, awaitingReplyFrom: "STAFF", chatClosedAt: null } }),
+    prisma.order.count({ where: { messages: { some: {} }, awaitingReplyFrom: "CLIENTE", chatClosedAt: null } }),
+    prisma.order.count({ where: { messages: { some: {} }, chatClosedAt: { not: null } } }),
+  ]);
+  return { conversations, total, page, pageSize, pageCount: Math.max(1, Math.ceil(total / pageSize)), counts: { open, waiting, customer, closed } };
 }
 
 export async function getAdminOrder(id: string) {

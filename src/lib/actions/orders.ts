@@ -312,7 +312,14 @@ export async function cancelOrderAction(
 
   await updateOrderStatus(order.id, order.status, "CANCELADO", {
     note: `Cliente cancelou: ${reason}`,
-    orderData: { reasonCancelled: reason },
+    orderData: {
+      reasonCancelled: reason,
+      // Cancelamento voluntário não exige atendimento da equipe. O motivo continua
+      // registrado abaixo, mas a conversa sai imediatamente da fila de chats abertos.
+      awaitingReplyFrom: null,
+      chatWaitingSince: null,
+      chatClosedAt: new Date(),
+    },
   });
 
   await prisma.orderMessage.create({
@@ -326,6 +333,8 @@ export async function cancelOrderAction(
 
   revalidatePath("/conta/pedidos");
   revalidatePath(`/conta/pedidos/${orderId}`);
+  revalidatePath("/painel/pedidos");
+  revalidatePath("/painel/conversas");
   return { success: true };
 }
 

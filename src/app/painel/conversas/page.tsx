@@ -2,14 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getAdminConversations } from "@/lib/admin";
 import { OrderStatusBadge } from "@/components/OrderStatusBadge";
+import { ConversationsInbox } from "./ConversationsInbox";
 
 export const metadata: Metadata = { title: "Conversas · Painel" };
-type SearchParams = Promise<{ filtro?: string }>;
+type SearchParams = Promise<{ filtro?: string; q?: string; status?: string; sort?: string; page?: string }>;
 
 export default async function ConversationsPage({ searchParams }: { searchParams: SearchParams }) {
-  const { filtro = "open" } = await searchParams;
+  const filters = await searchParams;
+  return <ConversationsInbox filters={filters} />;
+  // Implementação anterior mantida abaixo como referência durante a transição visual.
+  const { filtro = "open" } = filters;
   const valid = ["open", "waiting", "closed", "all"].includes(filtro) ? filtro as "open" | "waiting" | "closed" | "all" : "open";
-  const conversations = await getAdminConversations(valid);
+  const conversations = (await getAdminConversations({ queue: valid })).conversations;
   const waiting = conversations.filter((item) => item.awaitingReplyFrom === "STAFF" && !item.chatClosedAt).length;
   const tabs = [{ value: "open", label: "Em andamento" }, { value: "waiting", label: "Aguardando equipe" }, { value: "closed", label: "Encerradas" }, { value: "all", label: "Todas" }];
 
