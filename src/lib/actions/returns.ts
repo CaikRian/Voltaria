@@ -30,8 +30,10 @@ export async function createReturnRequestAction(orderId: string, _prev: ReturnAc
     include: { items: true, statusEvents: { where: { status: "ENTREGUE" }, orderBy: { createdAt: "desc" }, take: 1 }, returnRequests: { where: { status: { in: ACTIVE } }, include: { items: true } } },
   });
   if (!order) return { error: "Pedido não encontrado." };
-  if (order.status !== "ENTREGUE") return { error: "A devolução fica disponível após a confirmação da entrega." };
+  const eligibleStatuses = ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO", "ENVIADO", "ENTREGUE"];
+  if (!eligibleStatuses.includes(order.status)) return { error: "O reembolso fica disponível após a confirmação do pagamento." };
   if (!order.mpPaymentId) return { error: "O pagamento deste pedido ainda não pode ser reembolsado automaticamente." };
+  const requestType = ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO"].includes(order.status) ? "CANCELLATION" : "RETURN";
   const deliveredAt = order.statusEvents[0]?.createdAt;
   if (category === "ARREPENDIMENTO" && deliveredAt && Date.now() - deliveredAt.getTime() > 7 * 24 * 60 * 60 * 1000) {
     return { error: "O prazo legal de 7 dias corridos para arrependimento terminou. Se houver defeito ou outra ocorrência, selecione o motivo correspondente para análise." };
@@ -39,6 +41,9 @@ export async function createReturnRequestAction(orderId: string, _prev: ReturnAc
 
   const selected = order.items.map((item) => ({ item, qty: Number(formData.get(`qty_${item.id}`) || 0) })).filter((entry) => Number.isInteger(entry.qty) && entry.qty > 0);
   if (!selected.length) return { error: "Selecione ao menos um item e a quantidade." };
+  if (requestType === "CANCELLATION" && (selected.length !== order.items.length || selected.some(({ item, qty }) => qty !== item.qty))) {
+    return { error: "Antes do envio, o cancelamento deve abranger o pedido inteiro para não gerar uma expedição com itens incorretos." };
+  }
   for (const entry of selected) {
     const alreadyRequested = order.returnRequests.flatMap((request) => request.items).filter((item) => item.orderItemId === entry.item.id).reduce((sum, item) => sum + item.qty, 0);
     if (entry.qty + alreadyRequested > entry.item.qty) return { error: `A quantidade solicitada para ${entry.item.productName} excede a quantidade disponível.` };
@@ -50,7 +55,7 @@ export async function createReturnRequestAction(orderId: string, _prev: ReturnAc
 
   await prisma.returnRequest.create({
     data: {
-      orderId, userId: user.id, reasonCategory: category, reasonDetails: details,
+      orderId, userId: user.id, requestType, reasonCategory: category, reasonDetails: details,
       evidenceUrls: evidenceUrls.length ? JSON.stringify(evidenceUrls.slice(0, 8)) : null,
       requestedCents, idempotencyKey: `return-${randomUUID()}`,
       items: { create: selected.map(({ item, qty }) => ({ orderItemId: item.id, qty, unitCents: item.unitCents })) },
@@ -78,18 +83,40 @@ export async function reviewReturnAction(returnId: string, _prev: ReturnActionSt
   const decision = String(formData.get("decision") || "");
   const note = String(formData.get("note") || "").trim();
   const instructions = String(formData.get("reverseInstructions") || "").trim();
-  const request = await prisma.returnRequest.findUnique({ where: { id: returnId }, select: { orderId: true, status: true } });
+  const request = await prisma.returnRequest.findUnique({ where: { id: returnId }, include: { items: { include: { orderItem: true } }, order: { select: { shippingCents: true, totalCents: true } } } });
   if (!request || request.status !== "REQUESTED") return { error: "Solicitação já analisada ou inexistente." };
   if (decision === "REJECT" && note.length < 5) return { error: "Informe uma justificativa clara para a recusa." };
-  if (decision === "APPROVE" && instructions.length < 10) return { error: "Informe as instruções de devolução ao cliente." };
+  if (decision === "APPROVE" && request.requestType === "RETURN" && instructions.length < 10) return { error: "Informe as instruções de devolução ao cliente." };
   if (!["APPROVE", "REJECT"].includes(decision)) return { error: "Decisão inválida." };
   const approved = decision === "APPROVE";
-  await prisma.returnRequest.update({ where: { id: returnId }, data: {
-    status: approved ? "AWAITING_SHIPMENT" : "REJECTED", reviewedAt: new Date(), reviewedById: actor.id,
-    reviewedByName: actor.name || actor.email, staffNote: note || null, rejectionReason: approved ? null : note,
-    reverseInstructions: approved ? instructions : null,
-    events: { create: { status: approved ? "AWAITING_SHIPMENT" : "REJECTED", note: approved ? "Devolução aprovada; aguardando postagem." : note, actorId: actor.id, actorName: actor.name || actor.email, actorRole: actor.role } },
-  } });
+  const isCancellation = request.requestType === "CANCELLATION";
+  if (approved && isCancellation) {
+    const itemSubtotal = request.items.reduce((sum, item) => sum + item.unitCents * item.qty, 0);
+    const orderItemSubtotal = request.order.totalCents - (request.order.shippingCents || 0);
+    const includeShipping = itemSubtotal === orderItemSubtotal;
+    const approvedCents = itemSubtotal + (includeShipping ? request.order.shippingCents || 0 : 0);
+    await prisma.$transaction(async (tx) => {
+      for (const item of request.items) {
+        const claimed = await tx.returnItem.updateMany({ where: { id: item.id, restockedAt: null }, data: { condition: "NOT_SHIPPED", restockDecision: "RESTOCK", restockedAt: new Date() } });
+        if (claimed.count === 1) {
+          if (item.orderItem.variantId) await tx.variant.update({ where: { id: item.orderItem.variantId }, data: { stock: { increment: item.qty } } });
+          else await tx.product.update({ where: { id: item.orderItem.productId }, data: { stock: { increment: item.qty } } });
+        }
+      }
+      await tx.returnRequest.update({ where: { id: returnId }, data: {
+        status: "INSPECTED", reviewedAt: new Date(), inspectedAt: new Date(), reviewedById: actor.id,
+        reviewedByName: actor.name || actor.email, staffNote: note || null, approvedCents, includeShipping,
+        events: { create: { status: "INSPECTED", note: `Cancelamento aprovado antes do envio. Reembolso autorizado: R$ ${(approvedCents / 100).toFixed(2)}.`, actorId: actor.id, actorName: actor.name || actor.email, actorRole: actor.role } },
+      } });
+    });
+  } else {
+    await prisma.returnRequest.update({ where: { id: returnId }, data: {
+      status: approved ? "AWAITING_SHIPMENT" : "REJECTED", reviewedAt: new Date(), reviewedById: actor.id,
+      reviewedByName: actor.name || actor.email, staffNote: note || null, rejectionReason: approved ? null : note,
+      reverseInstructions: approved ? instructions : null,
+      events: { create: { status: approved ? "AWAITING_SHIPMENT" : "REJECTED", note: approved ? "Devolução aprovada; aguardando postagem." : note, actorId: actor.id, actorName: actor.name || actor.email, actorRole: actor.role } },
+    } });
+  }
   refresh(request.orderId);
   return { success: true };
 }

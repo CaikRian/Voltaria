@@ -330,6 +330,7 @@ model ReturnRequest {
   user                User          @relation(fields: [userId], references: [id], onDelete: Restrict)
   userId              String
   status              String        @default("REQUESTED") // REQUESTED | APPROVED | REJECTED | AWAITING_SHIPMENT | IN_TRANSIT | RECEIVED | INSPECTED | REFUND_PROCESSING | REFUNDED | REFUND_FAILED | CANCELLED
+  requestType         String        @default("RETURN") // CANCELLATION (antes do envio) | RETURN (após envio)
   reasonCategory      String
   reasonDetails       String
   evidenceUrls        String?       // JSON string de URLs públicas

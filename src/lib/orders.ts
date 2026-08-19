@@ -92,10 +92,21 @@ export async function updateOrderStatus(
     await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${orderId} FOR UPDATE`;
     const current = await tx.order.findUniqueOrThrow({
       where: { id: orderId },
-      include: { items: true },
+      include: {
+        items: true,
+        returnRequests: {
+          where: { requestType: "CANCELLATION", status: { in: ["REQUESTED", "INSPECTED", "REFUND_PROCESSING", "REFUND_FAILED"] } },
+          select: { id: true },
+          take: 1,
+        },
+      },
     });
     const changed = current.status !== newStatus;
     const reservationData: Prisma.OrderUpdateInput = {};
+
+    if (["PREPARANDO_ENVIO", "ENVIADO"].includes(newStatus) && current.returnRequests.length > 0) {
+      throw new Error("Existe uma solicitação de cancelamento aguardando conclusão. Resolva o reembolso antes de enviar o pedido.");
+    }
 
     if (changed && newStatus === "PAGAMENTO_APROVADO" && current.stockReservationStatus !== "CONSUMED") {
       if (current.stockReservationStatus !== "RESERVED") {
