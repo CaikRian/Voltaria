@@ -10,10 +10,10 @@ export async function getReports(period: ReportPeriod = "30", custom?: { from?: 
   const to = custom?.to;
   const dateRange = { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) };
   const where = Object.keys(dateRange).length ? { createdAt: dateRange } : {};
-  const [orders, products, newCustomers, reviews, questions] = await Promise.all([
+  const [orders, products, customers, reviews, questions] = await Promise.all([
     prisma.order.findMany({ where, include: { items: true }, orderBy: { createdAt: "desc" } }),
     prisma.product.findMany({ include: { variants: { select: { stock: true } }, category: { select: { name: true } } }, orderBy: { name: "asc" } }),
-    prisma.user.count({ where: { role: "CLIENTE", ...(Object.keys(dateRange).length ? { createdAt: dateRange } : {}) } }),
+    prisma.user.findMany({ where: { role: "CLIENTE", ...(Object.keys(dateRange).length ? { createdAt: dateRange } : {}) }, select: { id: true, name: true, email: true, createdAt: true, _count: { select: { orders: true, reviews: true, questions: true } } }, orderBy: { createdAt: "desc" } }),
     prisma.review.findMany({ where, select: { rating: true, hidden: true, createdAt: true } }),
     prisma.question.findMany({ where, select: { answeredAt: true, hidden: true, createdAt: true } }),
   ]);
@@ -36,7 +36,7 @@ export async function getReports(period: ReportPeriod = "30", custom?: { from?: 
     period, generatedAt: new Date(), from, to, orders, confirmed, revenue, averageTicket: confirmed.length ? Math.round(revenue / confirmed.length) : 0,
     cancelled: orders.filter((order) => order.status === "CANCELADO").length,
     refunds: orders.filter((order) => ["REEMBOLSO_SOLICITADO", "REEMBOLSADO"].includes(order.status)).length,
-    newCustomers, reviews: reviews.length, ratingAverage, questions: questions.length,
+    newCustomers: customers.length, customers, reviews: reviews.length, ratingAverage, questions: questions.length,
     unansweredQuestions: questions.filter((question) => !question.answeredAt && !question.hidden).length,
     status, payment, topProducts, inventory, daily, salesDaily,
   };
@@ -44,9 +44,9 @@ export async function getReports(period: ReportPeriod = "30", custom?: { from?: 
 
 export function reportRows(data: Awaited<ReturnType<typeof getReports>>, type: ReportType): Array<Record<string, string | number>> {
   if (type === "sales") return data.salesDaily.map((row) => ({ Data: row.date.split("-").reverse().join("/"), Pedidos: row.orders, "Faturamento (centavos)": row.revenueCents }));
-  if (type === "orders") return data.orders.map((order) => ({ Pedido: order.id, Email: order.email, Status: order.status, "Total (centavos)": order.totalCents, Criado: order.createdAt.toISOString() }));
+  if (type === "orders") return data.orders.map((order) => ({ Pedido: order.id, Cliente: order.email, Itens: order.items.reduce((sum, item) => sum + item.qty, 0), Produtos: order.items.map((item) => `${item.productName}${item.variantName ? ` (${item.variantName})` : ""} × ${item.qty}`).join("; "), Status: order.status, Pagamento: order.mpPaymentMethod ?? "Não informado", "Total (centavos)": order.totalCents, Frete: order.shippingMethod ?? "Não informado", Rastreamento: order.trackingCode ?? "—", Cidade: order.shipCity ?? "—", UF: order.shipState ?? "—", Criado: order.createdAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }), Atualizado: order.updatedAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) }));
   if (type === "products") return data.inventory.map((row) => ({ Produto: row.product, Categoria: row.category, Situação: row.active, Estoque: row.stock, "Preço (centavos)": row.priceCents }));
   if (type === "payments") return data.payment.map(([method, count]) => ({ "Meio de pagamento": method, Pedidos: count }));
   if (type === "service") return [{ "Dúvidas recebidas": data.questions, "Dúvidas pendentes": data.unansweredQuestions, Avaliações: data.reviews, "Nota média": data.ratingAverage.toFixed(2), Reembolsos: data.refunds }];
-  return [{ "Novos clientes": data.newCustomers, "Clientes compradores": new Set(data.orders.map((order) => order.email)).size, "Ticket médio (centavos)": data.averageTicket }];
+  return data.customers.map((customer) => ({ Cliente: customer.name ?? "Sem nome", Email: customer.email, Pedidos: customer._count.orders, Avaliações: customer._count.reviews, Dúvidas: customer._count.questions, Cadastro: customer.createdAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) }));
 }

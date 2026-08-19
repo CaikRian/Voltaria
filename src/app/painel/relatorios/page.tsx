@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getReports, reportRows, REPORT_PERIODS, type ReportPeriod, type ReportType } from "@/lib/reports";
 import { formatBRL } from "@/lib/format";
 import { STATUS_META, type OrderStatus } from "@/lib/order-status";
-import { ReportExplorer } from "./ReportExplorer";
+import { ReportExplorerV2 } from "./ReportExplorerV2";
 
 export const metadata: Metadata = { title: "Relatórios · Painel" };
 type SearchParams = Promise<{ period?: string; from?: string; to?: string; type?: string }>;
@@ -15,7 +15,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
   const from = parseDate(params.from, false); const to = parseDate(params.to, true); const custom = from && to && from <= to ? { from, to } : undefined;
   const rangeLabel = custom ? `${params.from!.split("-").reverse().join("/")} até ${params.to!.split("-").reverse().join("/")}` : periodLabels[period];
   const report = await getReports(period, custom); const maxDay = Math.max(...report.daily.map((day) => day.revenueCents), 1); const maxStatus = Math.max(...report.status.map(([, count]) => count), 1);
-  const types: ReportType[] = ["sales", "orders", "products", "customers", "payments", "service"]; const allRows = Object.fromEntries(types.map((type) => [type, reportRows(report, type).slice(0, 100)])); const totals = Object.fromEntries(types.map((type) => [type, reportRows(report, type).length]));
+  const types: ReportType[] = ["sales", "orders", "products", "customers", "payments", "service"]; const allRows = Object.fromEntries(types.map((type) => [type, reportRows(report, type)]));
   const conversion = report.orders.length ? (report.confirmed.length / report.orders.length) * 100 : 0;
   const cards = [
     { label: "Faturamento confirmado", value: formatBRL(report.revenue), detail: `${report.confirmed.length} vendas`, tone: "brand" },
@@ -43,7 +43,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
     <div>
       <section className="rounded-xl2 border border-line bg-paper p-5 shadow-card"><h3 className="font-display text-lg font-semibold">Atendimento e reputação</h3><div className="mt-4 grid grid-cols-2 gap-3"><Metric label="Nota média" value={report.ratingAverage ? `${report.ratingAverage.toFixed(1)} ★` : "—"} /><Metric label="Avaliações" value={String(report.reviews)} /><Metric label="Dúvidas" value={String(report.questions)} /><Metric label="Sem resposta" value={String(report.unansweredQuestions)} /><Metric label="Cancelados" value={String(report.cancelled)} /><Metric label="Reembolsos" value={String(report.refunds)} /></div></section>
     </div>
-    <ReportExplorer rows={allRows} totals={totals} period={period} from={params.from} to={params.to} initialType={types.includes(params.type as ReportType) ? params.type : "sales"} />
+    <ReportExplorerV2 rows={allRows} period={period} from={params.from} to={params.to} initialType={types.includes(params.type as ReportType) ? params.type : "orders"} />
   </div>;
 }
 
