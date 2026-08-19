@@ -131,7 +131,7 @@ export function OrderMessageThread({ orderId, mode, messages, closed = false }: 
   return (
     <div className="overflow-hidden rounded-[1.5rem] border border-line bg-paper shadow-pop">
       <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-slate-900 to-brand-dark px-5 py-4 text-white">
-        <div><p className="font-display font-semibold">{labels.title}</p><p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/65"><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />{labels.live}</p></div>
+        <div><p className="font-display font-semibold">{labels.title}</p><p className="mt-0.5 text-xs font-mono text-white/70">Protocolo #{orderId.slice(-8).toUpperCase()}</p><p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/65"><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />{labels.live}</p></div>
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => setShowSearch((value) => !value)} className="grid h-8 w-8 place-items-center rounded-lg bg-white/10 text-sm hover:bg-white/20" title="Buscar na conversa">⌕</button>
           <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/75">

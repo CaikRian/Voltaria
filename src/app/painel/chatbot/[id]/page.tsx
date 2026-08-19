@@ -31,7 +31,7 @@ export default async function PainelChatbotSessionPage({ params }: { params: Par
             <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wide">{session.reason}</span>
             {session.chatClosedAt && <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wide">Encerrada</span>}
           </div>
-          <p className="mt-2 text-sm text-white/70">Iniciado em {dateTime(session.createdAt)}</p>
+          <p className="mt-2 font-mono text-sm text-white/70">Protocolo #{session.id.slice(-8).toUpperCase()} · Iniciado em {dateTime(session.createdAt)}</p>
         </div>
       </section>
 
@@ -69,6 +69,7 @@ export default async function PainelChatbotSessionPage({ params }: { params: Par
           <section className="rounded-xl2 border border-line bg-paper p-5 shadow-card">
             <h3 className="mb-3 font-display text-base font-semibold">Prévia do atendimento</h3>
             <dl className="space-y-2 text-sm">
+              <div className="flex items-center justify-between gap-3"><dt className="text-ink-muted">Protocolo</dt><dd className="text-right font-mono font-medium text-ink">#{session.id.slice(-8).toUpperCase()}</dd></div>
               <div className="flex items-center justify-between gap-3"><dt className="text-ink-muted">Nome</dt><dd className="text-right font-medium text-ink">{session.name || "—"}</dd></div>
               <div className="flex items-center justify-between gap-3"><dt className="text-ink-muted">E-mail</dt><dd className="text-right font-medium text-ink">{session.email}</dd></div>
               <div className="flex items-center justify-between gap-3"><dt className="text-ink-muted">Motivo</dt><dd className="text-right font-medium text-ink">{session.reason}</dd></div>

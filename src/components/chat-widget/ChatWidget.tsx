@@ -58,7 +58,9 @@ export function ChatWidget() {
           <div className="flex items-center justify-between bg-gradient-to-r from-slate-900 to-brand-dark px-4 py-3 text-white">
             <div>
               <p className="font-display text-sm font-semibold">Bia</p>
-              <p className="text-[11px] text-white/70">Assistente virtual · Heca - Store</p>
+              <p className="text-[11px] text-white/70">
+                {sessionId ? `Protocolo #${sessionId.slice(-8).toUpperCase()}` : "Assistente virtual · Heca - Store"}
+              </p>
             </div>
             <button onClick={close} aria-label="Fechar chat" className="grid h-7 w-7 place-items-center rounded-lg hover:bg-white/10">✕</button>
           </div>

@@ -1,23 +1,24 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import { sendChatVisitorMessageAction, type ChatMessageState } from "@/lib/actions/chat";
+import { useEffect, useRef, useState } from "react";
+import { sendChatVisitorMessageAction } from "@/lib/actions/chat";
+import { useChatAction } from "./useChatAction";
 
 type Message = { id: string; senderRole: string; text: string; createdAt: string };
-
-const initial: ChatMessageState = {};
 
 export function LiveChatThread({ sessionId, visitorId }: { sessionId: string; visitorId: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [closed, setClosed] = useState(false);
-  const action = sendChatVisitorMessageAction.bind(null, sessionId, visitorId);
-  const [state, formAction, pending] = useActionState(action, initial);
+  const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const { pending, timedOut, submit, clearTimedOut } = useChatAction((formData) => sendChatVisitorMessageAction(sessionId, visitorId, {}, formData));
 
   // Poll a cada 5s (mesmo padrão do OrderMessageThread pós-compra) — aqui o
   // widget não tem Server Component pra dar router.refresh(), então já vem com
-  // a lista completa de mensagens a cada rodada.
+  // a lista completa de mensagens a cada rodada. Isso também cobre o caso do
+  // envio ter demorado/travado: a próxima rodada de poll traz a mensagem mesmo
+  // que a resposta da action nunca volte pro client.
   useEffect(() => {
     let active = true;
     async function sync() {
@@ -35,12 +36,18 @@ export function LiveChatThread({ sessionId, visitorId }: { sessionId: string; vi
   }, [sessionId, visitorId]);
 
   useEffect(() => {
-    if (state.success) formRef.current?.reset();
-  }, [state.success]);
-
-  useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    setError(null);
+    submit(formData, (result) => {
+      if (result.error) setError(result.error);
+      else formRef.current?.reset();
+    });
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -59,10 +66,17 @@ export function LiveChatThread({ sessionId, visitorId }: { sessionId: string; vi
         {closed && <p className="text-center text-xs text-ink-muted">Conversa encerrada pela equipe.</p>}
       </div>
       {!closed && (
-        <form ref={formRef} action={formAction} className="flex gap-2 border-t border-line p-3">
-          {state.error && <p className="w-full text-xs text-deal">{state.error}</p>}
-          <input name="text" required placeholder="Escreva sua mensagem..." className="h-10 flex-1 rounded-xl border border-line bg-mist px-3 text-sm outline-none focus:border-brand focus:bg-white" />
-          <button type="submit" disabled={pending} className="h-10 rounded-xl bg-brand px-4 text-sm font-bold text-white disabled:opacity-60">Enviar</button>
+        <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-1 border-t border-line p-3">
+          {error && <p className="text-xs text-deal">{error}</p>}
+          {timedOut && (
+            <p className="text-xs text-amber-800">
+              Demorou mais que o esperado, mas pode já ter chegado — confira acima. <button type="button" onClick={clearTimedOut} className="font-bold underline">Ok</button>
+            </p>
+          )}
+          <div className="flex gap-2">
+            <input name="text" required placeholder="Escreva sua mensagem..." className="h-10 flex-1 rounded-xl border border-line bg-mist px-3 text-sm outline-none focus:border-brand focus:bg-white" />
+            <button type="submit" disabled={pending} className="h-10 rounded-xl bg-brand px-4 text-sm font-bold text-white disabled:opacity-60">Enviar</button>
+          </div>
         </form>
       )}
     </div>

@@ -76,6 +76,7 @@ export async function ChatbotInbox({ filters }: { filters: ChatbotFilters }) {
                   <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(160px,.6fr)_auto] lg:items-center">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs font-black text-brand">#{session.id.slice(-8).toUpperCase()}</span>
                         <span className="rounded-full bg-mist px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-ink-soft">{session.reason}</span>
                         {needsReply ? <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-800">Responder agora</span>
                           : session.chatClosedAt ? <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-600">Encerrada</span>
