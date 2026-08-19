@@ -6,13 +6,17 @@ import { can } from "@/lib/permissions";
 import { formatBRL } from "@/lib/format";
 import { ButtonLink } from "@/components/ui/Button";
 import { DeleteProductButton } from "./DeleteProductButton";
+import { ProductCatalogDashboard } from "./ProductCatalogDashboard";
 
 export const metadata: Metadata = { title: "Produtos · Painel" };
 
-type SearchParams = Promise<{ q?: string }>;
+type SearchParams = Promise<{ q?: string; category?: string; visibility?: string; stock?: string; sort?: string; page?: string }>;
 
 export default async function PainelProdutosPage({ searchParams }: { searchParams: SearchParams }) {
-  const { q } = await searchParams;
+  const filters = await searchParams;
+  return <ProductCatalogDashboard filters={filters} />;
+  // Layout anterior mantido abaixo como referência durante a transição.
+  const { q } = filters;
   const [products, user] = await Promise.all([getAdminProducts(q), getCurrentUser()]);
   const canDelete = can(user?.role, "product:delete");
 

@@ -3,14 +3,54 @@ import { STAFF_ROLES } from "@/lib/permissions";
 
 // Consultas específicas do painel (incluem produtos inativos, que a loja não mostra).
 
-export async function getAdminProducts(q?: string) {
-  return prisma.product.findMany({
-    where: q
-      ? { OR: [{ name: { contains: q } }, { brand: { contains: q } }] }
-      : {},
-    include: { category: true, variants: { select: { stock: true } } },
-    orderBy: { createdAt: "desc" },
-  });
+export async function getAdminProducts(opts?: string | {
+  q?: string;
+  category?: string;
+  visibility?: "all" | "active" | "inactive" | "featured";
+  stock?: "all" | "out" | "low" | "available";
+  sort?: "newest" | "oldest" | "name" | "price_high" | "price_low" | "stock";
+  page?: number;
+  pageSize?: number;
+}) {
+  const options = typeof opts === "string" ? { q: opts } : (opts ?? {});
+  const page = Math.max(options.page ?? 1, 1);
+  const pageSize = Math.min(Math.max(options.pageSize ?? 10, 5), 30);
+  const stockFilter = options.stock ?? "all";
+  const stockWhere = stockFilter === "out"
+    ? { stock: 0, variants: { none: { stock: { gt: 0 } } } }
+    : stockFilter === "available"
+      ? { OR: [{ stock: { gt: 5 } }, { variants: { some: { stock: { gt: 5 } } } }] }
+      : stockFilter === "low"
+        ? { OR: [{ stock: { gt: 0, lte: 5 } }, { variants: { some: { stock: { gt: 0, lte: 5 } } } }] }
+        : {};
+  const where = {
+    AND: [
+      ...(options.q ? [{ OR: [{ name: { contains: options.q } }, { brand: { contains: options.q } }, { variants: { some: { sku: { contains: options.q } } } }] }] : []),
+      ...(options.category ? [{ categoryId: options.category }] : []),
+      ...(options.visibility === "active" ? [{ active: true }]
+        : options.visibility === "inactive" ? [{ active: false }]
+        : options.visibility === "featured" ? [{ featured: true }]
+        : []),
+      stockWhere,
+    ],
+  };
+  const orderBy = options.sort === "oldest" ? { createdAt: "asc" as const }
+    : options.sort === "name" ? { name: "asc" as const }
+    : options.sort === "price_high" ? { priceCents: "desc" as const }
+    : options.sort === "price_low" ? { priceCents: "asc" as const }
+    : options.sort === "stock" ? { stock: "asc" as const }
+    : { createdAt: "desc" as const };
+  const [products, total, active, inactive, featured, categories, inventory] = await Promise.all([
+    prisma.product.findMany({ where, include: { category: true, variants: { select: { name: true, sku: true, stock: true, priceCents: true } }, _count: { select: { reviews: true, questions: true } } }, orderBy, skip: (page - 1) * pageSize, take: pageSize }),
+    prisma.product.count({ where }),
+    prisma.product.count({ where: { active: true } }),
+    prisma.product.count({ where: { active: false } }),
+    prisma.product.count({ where: { featured: true } }),
+    prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, _count: { select: { products: true } } } }),
+    prisma.product.findMany({ select: { stock: true, variants: { select: { stock: true } } } }),
+  ]);
+  const lowStock = inventory.filter((item) => (item.variants.length ? item.variants.reduce((sum, variant) => sum + variant.stock, 0) : item.stock) <= 5).length;
+  return Object.assign(products, { products, total, page, pageSize, pageCount: Math.max(1, Math.ceil(total / pageSize)), stats: { active, inactive, featured, lowStock }, categories });
 }
 
 export async function getAdminProduct(id: string) {
