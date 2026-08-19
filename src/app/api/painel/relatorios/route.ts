@@ -13,7 +13,8 @@ export async function GET(request: Request) {
   const period = REPORT_PERIODS.includes(params.get("period") as ReportPeriod) ? params.get("period") as ReportPeriod : "30";
   const type = types.includes(params.get("type") as ReportType) ? params.get("type") as ReportType : "sales";
   const format = formats.includes(params.get("format") as typeof formats[number]) ? params.get("format") as typeof formats[number] : "csv";
-  const data = await getReports(period); const rows = reportRows(data, type); const headers = Object.keys(rows[0] ?? { Informação: "Sem dados" }); const normalized = rows.length ? rows : [{ Informação: "Sem dados no período" }];
+  const from = parseDate(params.get("from"), false); const to = parseDate(params.get("to"), true); const custom = from && to && from <= to ? { from, to } : undefined;
+  const data = await getReports(period, custom); const rows = reportRows(data, type); const headers = Object.keys(rows[0] ?? { Informação: "Sem dados" }); const normalized = rows.length ? rows : [{ Informação: "Sem dados no período" }];
   const filename = `voltaria-${names[type]}-${new Date().toISOString().slice(0, 10)}`;
   if (format === "json") return download(JSON.stringify({ report: type, period, generatedAt: data.generatedAt, rows: normalized }, null, 2), "application/json; charset=utf-8", `${filename}.json`);
   if (format === "csv") { const csv = [headers, ...normalized.map((row) => headers.map((header) => row[header] ?? ""))].map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(";")).join("\r\n"); return download(`\uFEFF${csv}`, "text/csv; charset=utf-8", `${filename}.csv`); }
@@ -25,3 +26,4 @@ export async function GET(request: Request) {
 
 function fileHeaders(contentType: string, filename: string) { return { "Content-Type": contentType, "Content-Disposition": `attachment; filename="${filename}"`, "Cache-Control": "no-store" }; }
 function download(body: string, contentType: string, filename: string) { return new NextResponse(body, { headers: fileHeaders(contentType, filename) }); }
+function parseDate(value: string | null, end: boolean) { if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined; const date = new Date(`${value}T${end ? "23:59:59.999" : "00:00:00"}-03:00`); return Number.isNaN(date.getTime()) ? undefined : date; }

@@ -5,13 +5,15 @@ export type ReportPeriod = typeof REPORT_PERIODS[number];
 export type ReportType = "sales" | "orders" | "products" | "customers" | "payments" | "service";
 const paid = ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO", "ENVIADO", "ENTREGUE"];
 
-export async function getReports(period: ReportPeriod = "30") {
-  const from = period === "all" ? undefined : new Date(Date.now() - Number(period) * 86400000);
-  const where = from ? { createdAt: { gte: from } } : {};
+export async function getReports(period: ReportPeriod = "30", custom?: { from?: Date; to?: Date }) {
+  const from = custom?.from ?? (period === "all" ? undefined : new Date(Date.now() - Number(period) * 86400000));
+  const to = custom?.to;
+  const dateRange = { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) };
+  const where = Object.keys(dateRange).length ? { createdAt: dateRange } : {};
   const [orders, products, newCustomers, reviews, questions] = await Promise.all([
     prisma.order.findMany({ where, include: { items: true }, orderBy: { createdAt: "desc" } }),
     prisma.product.findMany({ include: { variants: { select: { stock: true } }, category: { select: { name: true } } }, orderBy: { name: "asc" } }),
-    prisma.user.count({ where: { role: "CLIENTE", ...(from ? { createdAt: { gte: from } } : {}) } }),
+    prisma.user.count({ where: { role: "CLIENTE", ...(Object.keys(dateRange).length ? { createdAt: dateRange } : {}) } }),
     prisma.review.findMany({ where, select: { rating: true, hidden: true, createdAt: true } }),
     prisma.question.findMany({ where, select: { answeredAt: true, hidden: true, createdAt: true } }),
   ]);
@@ -24,21 +26,24 @@ export async function getReports(period: ReportPeriod = "30") {
   const topProducts = [...productMap.values()].sort((a, b) => b.revenueCents - a.revenueCents);
   const inventory = products.map((product) => ({ product: product.name, category: product.category.name, active: product.active ? "Ativo" : "Inativo", stock: product.variants.length ? product.variants.reduce((sum, variant) => sum + variant.stock, 0) : product.stock, priceCents: product.priceCents })).sort((a, b) => a.stock - b.stock);
   const dailyMap = new Map<string, { revenueCents: number; orders: number }>();
-  confirmed.forEach((order) => { const day = order.createdAt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" }); const current = dailyMap.get(day) ?? { revenueCents: 0, orders: 0 }; current.revenueCents += order.totalCents; current.orders++; dailyMap.set(day, current); });
-  const daily = [...dailyMap.entries()].reverse().slice(-31).map(([date, values]) => ({ date, ...values }));
+  confirmed.forEach((order) => { const day = order.createdAt.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }); const current = dailyMap.get(day) ?? { revenueCents: 0, orders: 0 }; current.revenueCents += order.totalCents; current.orders++; dailyMap.set(day, current); });
+  const salesDaily = [...dailyMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, values]) => ({ date, ...values }));
+  const chartEnd = to ?? new Date(); const requestedStart = from ?? new Date(chartEnd.getTime() - 30 * 86400000); const chartStart = new Date(Math.max(requestedStart.getTime(), chartEnd.getTime() - 30 * 86400000));
+  const daily: Array<{ date: string; dateKey: string; revenueCents: number; orders: number }> = [];
+  for (let cursor = new Date(chartStart); cursor <= chartEnd; cursor = new Date(cursor.getTime() + 86400000)) { const key = cursor.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }); daily.push({ dateKey: key, date: cursor.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" }), ...(dailyMap.get(key) ?? { revenueCents: 0, orders: 0 }) }); }
   const ratingAverage = reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0;
   return {
-    period, generatedAt: new Date(), from, orders, confirmed, revenue, averageTicket: confirmed.length ? Math.round(revenue / confirmed.length) : 0,
+    period, generatedAt: new Date(), from, to, orders, confirmed, revenue, averageTicket: confirmed.length ? Math.round(revenue / confirmed.length) : 0,
     cancelled: orders.filter((order) => order.status === "CANCELADO").length,
     refunds: orders.filter((order) => ["REEMBOLSO_SOLICITADO", "REEMBOLSADO"].includes(order.status)).length,
     newCustomers, reviews: reviews.length, ratingAverage, questions: questions.length,
     unansweredQuestions: questions.filter((question) => !question.answeredAt && !question.hidden).length,
-    status, payment, topProducts, inventory, daily,
+    status, payment, topProducts, inventory, daily, salesDaily,
   };
 }
 
 export function reportRows(data: Awaited<ReturnType<typeof getReports>>, type: ReportType): Array<Record<string, string | number>> {
-  if (type === "sales") return data.daily.map((row) => ({ Data: row.date, Pedidos: row.orders, "Faturamento (centavos)": row.revenueCents }));
+  if (type === "sales") return data.salesDaily.map((row) => ({ Data: row.date.split("-").reverse().join("/"), Pedidos: row.orders, "Faturamento (centavos)": row.revenueCents }));
   if (type === "orders") return data.orders.map((order) => ({ Pedido: order.id, Email: order.email, Status: order.status, "Total (centavos)": order.totalCents, Criado: order.createdAt.toISOString() }));
   if (type === "products") return data.inventory.map((row) => ({ Produto: row.product, Categoria: row.category, Situação: row.active, Estoque: row.stock, "Preço (centavos)": row.priceCents }));
   if (type === "payments") return data.payment.map(([method, count]) => ({ "Meio de pagamento": method, Pedidos: count }));
