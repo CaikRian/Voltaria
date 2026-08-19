@@ -9,6 +9,7 @@ type Message = { id: string; senderRole: string; text: string; createdAt: string
 export function LiveChatThread({ sessionId, visitorId }: { sessionId: string; visitorId: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [closed, setClosed] = useState(false);
+  const [queuePosition, setQueuePosition] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -28,6 +29,7 @@ export function LiveChatThread({ sessionId, visitorId }: { sessionId: string; vi
         const data = await res.json();
         setMessages(data.messages ?? []);
         setClosed(!!data.closed);
+        setQueuePosition(typeof data.queuePosition === "number" ? data.queuePosition : null);
       } catch { /* mantém funcionando mesmo com uma consulta temporariamente indisponível */ }
     }
     sync();
@@ -51,8 +53,18 @@ export function LiveChatThread({ sessionId, visitorId }: { sessionId: string; vi
 
   return (
     <div className="flex h-full flex-col">
+      {queuePosition !== null && (
+        <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-semibold text-amber-900">
+          <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-amber-400 text-[11px] font-black text-amber-950">{queuePosition}</span>
+          {queuePosition === 1 ? "Você é o próximo! Um atendente já vai te chamar." : `Você está na fila — posição ${queuePosition}`}
+        </div>
+      )}
       <div ref={listRef} className="flex-1 space-y-2 overflow-y-auto p-4">
-        {messages.length === 0 && <p className="text-center text-xs text-ink-muted">Recebemos seu pedido — um atendente vai te responder aqui em breve.</p>}
+        {messages.length === 0 && (
+          <p className="text-center text-xs text-ink-muted">
+            {queuePosition !== null ? "Assim que chegar sua vez, a conversa continua aqui." : "Recebemos seu pedido — um atendente vai te responder aqui em breve."}
+          </p>
+        )}
         {messages.map((message) => {
           const isVisitor = message.senderRole === "VISITANTE";
           return (

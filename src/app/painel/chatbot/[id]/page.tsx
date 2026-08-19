@@ -70,6 +70,9 @@ export default async function PainelChatbotSessionPage({ params }: { params: Par
             <h3 className="mb-3 font-display text-base font-semibold">Prévia do atendimento</h3>
             <dl className="space-y-2 text-sm">
               <div className="flex items-center justify-between gap-3"><dt className="text-ink-muted">Protocolo</dt><dd className="text-right font-mono font-medium text-ink">#{session.id.slice(-8).toUpperCase()}</dd></div>
+              {session.queuePosition !== null && (
+                <div className="flex items-center justify-between gap-3"><dt className="text-ink-muted">Posição na fila</dt><dd className="text-right font-bold text-amber-700">{session.queuePosition}º</dd></div>
+              )}
               <div className="flex items-center justify-between gap-3"><dt className="text-ink-muted">Nome</dt><dd className="text-right font-medium text-ink">{session.name || "—"}</dd></div>
               <div className="flex items-center justify-between gap-3"><dt className="text-ink-muted">E-mail</dt><dd className="text-right font-medium text-ink">{session.email}</dd></div>
               <div className="flex items-center justify-between gap-3"><dt className="text-ink-muted">Motivo</dt><dd className="text-right font-medium text-ink">{session.reason}</dd></div>

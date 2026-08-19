@@ -13,6 +13,14 @@ function date(value: Date) {
   return new Date(value).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
 }
 
+function waitingFor(value: Date) {
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60000));
+  if (minutes < 1) return "agora mesmo";
+  if (minutes < 60) return `há ${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  return `há ${hours}h`;
+}
+
 export async function ChatbotInbox({ filters }: { filters: ChatbotFilters }) {
   const queue = ["waiting", "open", "closed", "all"].includes(filters.filtro ?? "") ? (filters.filtro as "waiting" | "open" | "closed" | "all") : "waiting";
   const data = await getAdminChatSessions({ queue, q: filters.q, page: Math.max(Number(filters.page) || 1, 1), pageSize: 10 });
@@ -35,7 +43,10 @@ export async function ChatbotInbox({ filters }: { filters: ChatbotFilters }) {
           <div>
             <p className="text-xs font-bold uppercase tracking-[.2em] text-white/60">Widget flutuante da loja</p>
             <h1 className="mt-2 font-display text-3xl font-bold">Chat-bot</h1>
-            <p className="mt-2 max-w-xl text-sm text-white/70">Conversas que a Bia (bot da loja) encaminhou pra um atendente, com os dados que a pessoa preencheu antes de falar com você.</p>
+            <p className="mt-2 max-w-xl text-sm text-white/70">
+              Conversas que a Bia (bot da loja) encaminhou pra um atendente, com os dados que a pessoa preencheu antes de falar com você.
+              {queue === "waiting" && " A fila abaixo está em ordem de chegada — responda de cima pra baixo."}
+            </p>
           </div>
           <div className="rounded-2xl bg-amber-400 px-5 py-3 text-slate-950"><p className="text-[10px] font-bold uppercase tracking-wide opacity-60">Aguardando resposta</p><p className="mt-1 text-2xl font-black">{data.counts.waiting}</p></div>
         </div>
@@ -72,8 +83,14 @@ export async function ChatbotInbox({ filters }: { filters: ChatbotFilters }) {
             const needsReply = session.awaitingReplyFrom === "STAFF" && !session.chatClosedAt;
             return (
               <li key={session.id}>
-                <Link href={`/painel/chatbot/${session.id}`} className={`group block overflow-hidden rounded-xl2 border bg-paper shadow-card transition hover:-translate-y-0.5 hover:shadow-pop ${needsReply ? "border-amber-300" : "border-line"}`}>
-                  <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(160px,.6fr)_auto] lg:items-center">
+                <Link href={`/painel/chatbot/${session.id}`} className={`group flex overflow-hidden rounded-xl2 border bg-paper shadow-card transition hover:-translate-y-0.5 hover:shadow-pop ${needsReply ? "border-amber-300" : "border-line"}`}>
+                  {session.queuePosition !== null && (
+                    <div className="grid w-14 flex-none place-items-center bg-amber-400 text-slate-950">
+                      <span className="text-2xl font-black leading-none">{session.queuePosition}</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wide">fila</span>
+                    </div>
+                  )}
+                  <div className="grid flex-1 gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(160px,.6fr)_auto] lg:items-center">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono text-xs font-black text-brand">#{session.id.slice(-8).toUpperCase()}</span>
@@ -90,7 +107,11 @@ export async function ChatbotInbox({ filters }: { filters: ChatbotFilters }) {
                     </div>
                     <div className="text-left lg:text-right">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-ink-muted">{session._count.messages} mensagem(ns)</p>
-                      <p className="mt-1 text-xs text-ink-muted">{date(session.updatedAt)}</p>
+                      {session.queuePosition !== null && session.chatWaitingSince ? (
+                        <p className="mt-1 text-xs font-semibold text-amber-700">Esperando {waitingFor(session.chatWaitingSince)}</p>
+                      ) : (
+                        <p className="mt-1 text-xs text-ink-muted">{date(session.updatedAt)}</p>
+                      )}
                     </div>
                     <span className={`justify-self-start rounded-xl px-4 py-2 text-xs font-bold transition group-hover:translate-x-1 lg:justify-self-end ${needsReply ? "bg-amber-400 text-slate-950" : "bg-brand-soft text-brand"}`}>{needsReply ? "Responder agora →" : "Ver conversa →"}</span>
                   </div>

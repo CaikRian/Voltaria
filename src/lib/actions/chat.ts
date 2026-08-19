@@ -69,15 +69,20 @@ export async function sendChatVisitorMessageAction(
 
   const session = await prisma.chatSession.findUnique({
     where: { id: sessionId },
-    select: { visitorId: true, chatClosedAt: true },
+    select: { visitorId: true, chatClosedAt: true, awaitingReplyFrom: true, chatWaitingSince: true },
   });
   if (!session || session.visitorId !== visitorId) return { error: "Conversa não encontrada." };
   if (session.chatClosedAt) return { error: "Esta conversa foi encerrada." };
 
   await prisma.chatMessage.create({ data: { sessionId, senderRole: "VISITANTE", text: parsed.data.text } });
+  // Se a pessoa já estava na fila (aguardando o primeiro contato da equipe) e só
+  // mandou mais uma mensagem, não empurramos ela pro fim da fila de novo — só
+  // reinicia a contagem quando a equipe já tinha respondido e agora é uma
+  // pergunta nova.
+  const alreadyWaiting = session.awaitingReplyFrom === "STAFF" && session.chatWaitingSince;
   await prisma.chatSession.update({
     where: { id: sessionId },
-    data: { awaitingReplyFrom: "STAFF", chatWaitingSince: new Date() },
+    data: { awaitingReplyFrom: "STAFF", chatWaitingSince: alreadyWaiting ? session.chatWaitingSince! : new Date() },
   });
 
   revalidatePath("/painel/chatbot");

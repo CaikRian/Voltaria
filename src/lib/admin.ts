@@ -294,16 +294,18 @@ export async function getAdminChatSessions(opts: {
       ...(opts.q ? [{ OR: [{ name: { contains: opts.q } }, { email: { contains: opts.q } }, { orderRef: { contains: opts.q } }] }] : []),
     ],
   };
-  const [sessions, total, waiting, open, closed] = await Promise.all([
+  const [rawSessions, total, waiting, open, closed] = await Promise.all([
     prisma.chatSession.findMany({
       where,
       select: {
         id: true, name: true, email: true, reason: true, orderRef: true,
-        awaitingReplyFrom: true, chatClosedAt: true, createdAt: true, updatedAt: true,
+        awaitingReplyFrom: true, chatWaitingSince: true, chatClosedAt: true, createdAt: true, updatedAt: true,
         messages: { orderBy: { createdAt: "desc" }, take: 1, select: { text: true, senderRole: true, createdAt: true } },
         _count: { select: { messages: true } },
       },
-      orderBy: { updatedAt: "desc" },
+      // Fila = ordem de chegada (quem espera há mais tempo aparece primeiro).
+      // Fora da fila, ordena por atividade recente — não faz sentido "posição" ali.
+      orderBy: queue === "waiting" ? { chatWaitingSince: "asc" } : { updatedAt: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
@@ -312,14 +314,29 @@ export async function getAdminChatSessions(opts: {
     prisma.chatSession.count({ where: { chatClosedAt: null } }),
     prisma.chatSession.count({ where: { chatClosedAt: { not: null } } }),
   ]);
+  // Posição na página + offset da paginação — já veio ordenado por chegada.
+  const sessions = rawSessions.map((session, index) => ({
+    ...session,
+    queuePosition: queue === "waiting" ? (page - 1) * pageSize + index + 1 : null,
+  }));
   return { sessions, total, page, pageSize, pageCount: Math.max(1, Math.ceil(total / pageSize)), counts: { waiting, open, closed } };
 }
 
 export async function getAdminChatSession(id: string) {
-  return prisma.chatSession.findUnique({
+  const session = await prisma.chatSession.findUnique({
     where: { id },
     include: { messages: { orderBy: { createdAt: "asc" } } },
   });
+  if (!session) return null;
+
+  const queuePosition =
+    session.awaitingReplyFrom === "STAFF" && session.chatWaitingSince && !session.chatClosedAt
+      ? await prisma.chatSession.count({
+          where: { awaitingReplyFrom: "STAFF", chatClosedAt: null, chatWaitingSince: { lte: session.chatWaitingSince } },
+        })
+      : null;
+
+  return { ...session, queuePosition };
 }
 
 export async function getAdminOrder(id: string) {

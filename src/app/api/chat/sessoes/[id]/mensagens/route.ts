@@ -14,12 +14,20 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const session = await prisma.chatSession.findUnique({
     where: { id },
-    select: { visitorId: true, awaitingReplyFrom: true, chatClosedAt: true },
+    select: { visitorId: true, awaitingReplyFrom: true, chatWaitingSince: true, chatClosedAt: true },
   });
   if (!session) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   if (!isStaff(user?.role) && session.visitorId !== visitorId) {
     return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
+
+  // Posição na fila (só faz sentido enquanto a pessoa ainda não foi atendida).
+  const queuePosition =
+    session.awaitingReplyFrom === "STAFF" && session.chatWaitingSince && !session.chatClosedAt
+      ? await prisma.chatSession.count({
+          where: { awaitingReplyFrom: "STAFF", chatClosedAt: null, chatWaitingSince: { lte: session.chatWaitingSince } },
+        })
+      : null;
 
   const messages = await prisma.chatMessage.findMany({
     where: { sessionId: id },
@@ -29,7 +37,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   });
 
   return NextResponse.json(
-    { messages, count: messages.length, awaitingReplyFrom: session.awaitingReplyFrom, closed: !!session.chatClosedAt },
+    { messages, count: messages.length, awaitingReplyFrom: session.awaitingReplyFrom, closed: !!session.chatClosedAt, queuePosition },
     { headers: { "Cache-Control": "no-store, max-age=0" } }
   );
 }
