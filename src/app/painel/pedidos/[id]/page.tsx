@@ -209,6 +209,11 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
                 <dd className="font-mono text-xs">{order.mpPaymentId ?? "—"}</dd>
               </div>
             </dl>
+            {order.mpPaymentId && (
+              <Link href={`/painel/pedidos/${order.id}/comprovante`} className="mt-3 block text-center text-sm font-semibold text-brand hover:underline">
+                Ver comprovante e dados de segurança →
+              </Link>
+            )}
           </div>
 
           {canUpdateStatus && (

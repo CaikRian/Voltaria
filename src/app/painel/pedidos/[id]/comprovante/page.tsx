@@ -2,26 +2,23 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Payment } from "mercadopago";
-import { requireUser } from "@/lib/auth-helpers";
-import { getOrderForUser } from "@/lib/orders";
+import { getAdminOrderReceipt } from "@/lib/admin";
+import { requireStaff } from "@/lib/auth-helpers";
 import { mpClient } from "@/lib/mercadopago";
 import { PaymentReceiptCard } from "@/components/PaymentReceiptCard";
 import { PrintReceiptButton } from "@/components/PrintReceiptButton";
 
-export const metadata: Metadata = { title: "Comprovante de pagamento" };
+export const metadata: Metadata = { title: "Comprovante · Painel" };
 
 type Params = Promise<{ id: string }>;
 
-export default async function PaymentReceiptPage({ params }: { params: Params }) {
+export default async function PainelPaymentReceiptPage({ params }: { params: Params }) {
+  await requireStaff();
   const { id } = await params;
-  const user = await requireUser();
-  const order = await getOrderForUser(id, user.id);
+  const order = await getAdminOrderReceipt(id);
   if (!order?.mpPaymentId) notFound();
 
   const payment = await new Payment(mpClient).get({ id: order.mpPaymentId }).catch(() => null);
-
-  // Além de o pedido pertencer ao usuário logado, o pagamento precisa apontar
-  // de volta para esse mesmo pedido. Não exibimos dados em caso de divergência.
   if (!payment || payment.external_reference !== order.id) notFound();
 
   return (
@@ -29,20 +26,21 @@ export default async function PaymentReceiptPage({ params }: { params: Params })
       <style>{`@media print { header, footer, .no-print { display: none !important; } @page { margin: 16mm; } }`}</style>
 
       <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3">
-        <Link href={`/conta/pedidos/${order.id}`} className="text-sm text-brand hover:underline">
+        <Link href={`/painel/pedidos/${order.id}`} className="text-sm text-brand hover:underline">
           ← Voltar para o pedido
         </Link>
         <PrintReceiptButton />
       </div>
 
       <PaymentReceiptCard
-        variant="customer"
+        variant="staff"
         orderId={order.id}
-        customerName={order.shipName || user.name || order.email}
+        customerName={order.shipName || order.email}
         customerEmail={order.email}
         items={order.items}
         totalCents={order.totalCents}
         payment={payment}
+        accountCpf={order.user?.cpf}
       />
     </div>
   );

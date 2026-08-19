@@ -284,6 +284,24 @@ export async function getAdminOrder(id: string) {
   });
 }
 
+// Dados mínimos pro comprovante interno do painel — só o necessário pra
+// conferência de segurança (não reaproveita getAdminOrder pra não carregar
+// chat/timeline à toa nem crescer o shape usado pela tela de pedido).
+export async function getAdminOrderReceipt(id: string) {
+  return prisma.order.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      email: true,
+      shipName: true,
+      totalCents: true,
+      mpPaymentId: true,
+      items: { select: { id: true, productName: true, variantName: true, unitCents: true, qty: true } },
+      user: { select: { cpf: true } },
+    },
+  });
+}
+
 export async function getAdminReviews(opts?: {
   q?: string;
   rating?: number; // 1-5
