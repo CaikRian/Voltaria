@@ -35,7 +35,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${sans.variable} ${display.variable}`}>
+    <html lang="pt-BR" suppressHydrationWarning className={`${sans.variable} ${display.variable}`}>
+      <head><script dangerouslySetInnerHTML={{__html:`try{const p=JSON.parse(localStorage.getItem('heca-site-preferences-v1')||'null');const t=p?.theme||'system';const d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';document.documentElement.dataset.themePreference=t;document.documentElement.lang=p?.language||'pt-BR'}catch(e){}`}} /></head>
       <body className="flex min-h-screen flex-col font-sans">
         <Providers>
           <Suspense fallback={null}>

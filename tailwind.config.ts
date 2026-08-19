@@ -6,20 +6,20 @@ const config: Config = {
     extend: {
       colors: {
         ink: {
-          DEFAULT: "#09070D", // preto profundo da identidade Heca
-          soft: "#403849", // texto secundário com fundo violeta
-          muted: "#756B7D", // legendas
+          DEFAULT: "rgb(var(--ink) / <alpha-value>)",
+          soft: "rgb(var(--ink-soft) / <alpha-value>)",
+          muted: "rgb(var(--ink-muted) / <alpha-value>)",
         },
-        paper: "#FFFFFF",
-        mist: "#F8F5FA", // fundo lilás quase branco
-        line: "#E8DFED", // bordas
+        paper: "rgb(var(--paper) / <alpha-value>)",
+        mist: "rgb(var(--mist) / <alpha-value>)",
+        line: "rgb(var(--line) / <alpha-value>)",
         brand: {
-          DEFAULT: "#A100FF", // roxo choque — CTA principal
-          dark: "#6900A8", // hover e contraste
-          soft: "#F5E8FF", // fundo suave
+          DEFAULT: "rgb(var(--brand) / <alpha-value>)",
+          dark: "rgb(var(--brand-dark) / <alpha-value>)",
+          soft: "rgb(var(--brand-soft) / <alpha-value>)",
         },
-        deal: "#FF2D95", // rosa elétrico — descontos / ofertas
-        ok: "#12B76A", // em estoque / sucesso
+        deal: "rgb(var(--deal) / <alpha-value>)",
+        ok: "rgb(var(--ok) / <alpha-value>)",
       },
       fontFamily: {
         display: ["var(--font-display)", "system-ui", "sans-serif"],

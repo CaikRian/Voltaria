@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import { Button } from "@/components/ui/Button";
 import { sendOrderMessageAction, sendOrderReplyAction, closeOrderChatAction } from "@/lib/actions/orders";
+import { useSitePreferences } from "@/components/SitePreferences";
+
+const chatCopy = {
+  "pt-BR": { title:"Chat do pedido", live:"Atualização automática ativa", message:"mensagem", messages:"mensagens", close:"Fechar conversa", closing:"Fechando...", search:"Buscar uma mensagem...", empty:"Ainda não há mensagens nesta compra.", tools:"Ferramentas da mensagem", attach:"Anexar imagem", send:"Enviar mensagem", reply:"Responder no chat", sending:"Enviando...", replying:"Respondendo...", customerPlaceholder:"Escreva uma mensagem para a equipe sobre seu pedido...", staffPlaceholder:"Responder ao cliente sobre o pedido..." },
+  en: { title:"Order chat", live:"Automatic updates active", message:"message", messages:"messages", close:"Close conversation", closing:"Closing...", search:"Search messages...", empty:"There are no messages for this order yet.", tools:"Message tools", attach:"Attach image", send:"Send message", reply:"Reply in chat", sending:"Sending...", replying:"Replying...", customerPlaceholder:"Write a message to the team about your order...", staffPlaceholder:"Reply to the customer about the order..." },
+  es: { title:"Chat del pedido", live:"Actualización automática activa", message:"mensaje", messages:"mensajes", close:"Cerrar conversación", closing:"Cerrando...", search:"Buscar mensajes...", empty:"Todavía no hay mensajes en este pedido.", tools:"Herramientas del mensaje", attach:"Adjuntar imagen", send:"Enviar mensaje", reply:"Responder en el chat", sending:"Enviando...", replying:"Respondiendo...", customerPlaceholder:"Escribe un mensaje al equipo sobre tu pedido...", staffPlaceholder:"Responder al cliente sobre el pedido..." },
+};
 
 type MessageUser = {
   name?: string | null;
@@ -42,6 +49,8 @@ const formatSender = (role: string) => {
 };
 
 export function OrderMessageThread({ orderId, mode, messages, closed = false }: Props) {
+  const { language } = useSitePreferences();
+  const labels = chatCopy[language];
   const router = useRouter();
   const latestId = messages.at(-1)?.id ?? null;
   const knownLatest = useRef<string | null>(latestId);
@@ -122,11 +131,11 @@ export function OrderMessageThread({ orderId, mode, messages, closed = false }: 
   return (
     <div className="overflow-hidden rounded-[1.5rem] border border-line bg-paper shadow-pop">
       <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-slate-900 to-brand-dark px-5 py-4 text-white">
-        <div><p className="font-display font-semibold">Chat do pedido</p><p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/65"><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />Atualização automática ativa</p></div>
+        <div><p className="font-display font-semibold">{labels.title}</p><p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/65"><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />{labels.live}</p></div>
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => setShowSearch((value) => !value)} className="grid h-8 w-8 place-items-center rounded-lg bg-white/10 text-sm hover:bg-white/20" title="Buscar na conversa">⌕</button>
           <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/75">
-            {messages.length} {messages.length === 1 ? "mensagem" : "mensagens"}
+            {messages.length} {messages.length === 1 ? labels.message : labels.messages}
           </span>
           {mode === "staff" && !closed && (
             <form action={closeAction}>
@@ -135,7 +144,7 @@ export function OrderMessageThread({ orderId, mode, messages, closed = false }: 
                 disabled={closePending}
                 className="text-xs font-medium text-white/65 hover:text-white hover:underline"
               >
-                {closePending ? "Fechando..." : "Fechar conversa"}
+                {closePending ? labels.closing : labels.close}
               </button>
             </form>
           )}
@@ -157,7 +166,7 @@ export function OrderMessageThread({ orderId, mode, messages, closed = false }: 
 
       <div ref={messageAreaRef} className="mb-4 flex min-h-72 max-h-[32rem] flex-col gap-3 overflow-y-auto rounded-2xl border border-line bg-gradient-to-b from-mist to-white p-4 scroll-smooth">
         {messages.length === 0 ? (
-          <p className="text-sm text-ink-muted">Ainda não há mensagens nesta compra.</p>
+          <p className="text-sm text-ink-muted">{labels.empty}</p>
         ) : visibleMessages.length === 0 ? (
           <div className="m-auto text-center"><p className="font-medium">Nenhuma mensagem encontrada</p><p className="mt-1 text-xs text-ink-muted">Tente buscar por outro termo.</p></div>
         ) : (
@@ -220,8 +229,8 @@ export function OrderMessageThread({ orderId, mode, messages, closed = false }: 
           rows={3}
           placeholder={
             mode === "customer"
-              ? "Escreva uma mensagem para a equipe sobre seu pedido..."
-              : "Responder ao cliente sobre o pedido..."
+              ? labels.customerPlaceholder
+              : labels.staffPlaceholder
           }
           className="w-full resize-none border-0 bg-white px-4 py-3 text-sm outline-none"
         />
@@ -233,11 +242,11 @@ export function OrderMessageThread({ orderId, mode, messages, closed = false }: 
         <Button type="submit" disabled={pending || uploading || (!text.trim() && !attachment)} className="w-full">
           {pending
             ? mode === "customer"
-              ? "Enviando..."
-              : "Respondendo..."
+              ? labels.sending
+              : labels.replying
             : mode === "customer"
-              ? "Enviar mensagem"
-              : "Responder no chat"}
+              ? labels.send
+              : labels.reply}
         </Button>
       </form>
       </div>

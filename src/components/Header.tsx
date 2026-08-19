@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/store/cart";
 import { AuthButton } from "@/components/AuthButton";
+import { SitePreferencesMenu, useSitePreferences } from "@/components/SitePreferences";
+
+const copy = {
+  "pt-BR": { search:"Buscar produtos, marcas...", searchLabel:"Buscar produtos" },
+  en: { search:"Search products and brands...", searchLabel:"Search products" },
+  es: { search:"Buscar productos y marcas...", searchLabel:"Buscar productos" },
+};
 
 const categorias = [
   { name: "Smartphones", slug: "smartphones" },
@@ -15,6 +22,8 @@ const categorias = [
 ];
 
 export function Header() {
+  const { language } = useSitePreferences();
+  const text = copy[language];
   const router = useRouter();
   const [q, setQ] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -84,8 +93,8 @@ export function Header() {
               if (event.key === "ArrowUp") { event.preventDefault(); setActiveSuggestion((current) => Math.max(current - 1, -1)); }
               if (event.key === "Escape") setSearchOpen(false);
             }}
-            placeholder="Buscar produtos, marcas..."
-            aria-label="Buscar produtos"
+            placeholder={text.search}
+            aria-label={text.searchLabel}
             className="h-10 w-full rounded-xl border border-line bg-mist pl-10 pr-4 text-sm placeholder:text-ink-muted focus:border-brand focus:bg-paper"
           />
           <svg
@@ -103,6 +112,8 @@ export function Header() {
             <button type="submit" onMouseEnter={() => setActiveSuggestion(-1)} className="flex w-full items-center justify-between border-t border-line bg-slate-950 px-4 py-3 text-left text-xs font-bold text-white hover:bg-brand-dark"><span>Ver todos os resultados para “{q.trim()}”</span><span>→</span></button>
           </div>}
         </form>
+
+        <SitePreferencesMenu />
 
         {/* Conta */}
         <AuthButton />

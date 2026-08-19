@@ -2,6 +2,7 @@
 
 import { SessionProvider } from "next-auth/react";
 import { MotionConfig } from "motion/react";
+import { SitePreferencesProvider } from "@/components/SitePreferences";
 
 // Disponibiliza a sessão para componentes client (ex.: botão de conta no header).
 // MotionConfig com reducedMotion="user" faz toda animação motion.* no app respeitar
@@ -9,7 +10,7 @@ import { MotionConfig } from "motion/react";
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <MotionConfig reducedMotion="user">{children}</MotionConfig>
+      <SitePreferencesProvider><MotionConfig reducedMotion="user">{children}</MotionConfig></SitePreferencesProvider>
     </SessionProvider>
   );
 }
