@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -11,6 +10,7 @@ import { ShippingCalculator } from "@/components/ShippingCalculator";
 import { discountPercent, formatBRL } from "@/lib/format";
 import { ReviewsSection } from "./ReviewsSection";
 import { QuestionsSection } from "./QuestionsSection";
+import { ProductImageGallery } from "./ProductImageGallery";
 
 type Params = Promise<{ slug: string }>;
 
@@ -42,6 +42,8 @@ export default async function ProductPage({ params }: { params: Params }) {
   ]);
   const discount = discountPercent(product.priceCents, product.compareCents);
   const hasStock = product.stock > 0 || product.variants.some((variant) => variant.stock > 0);
+  const gallery = (() => { try { const value = JSON.parse(product.gallery ?? "[]"); return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; } catch { return []; } })();
+  const productImages = [product.imageUrl, ...gallery];
 
   // Dados estruturados (Schema.org) para Rich Snippets no Google.
   const jsonLd = {
@@ -49,7 +51,7 @@ export default async function ProductPage({ params }: { params: Params }) {
     "@type": "Product",
     name: product.name,
     description: product.description,
-    image: product.imageUrl,
+    image: productImages,
     brand: { "@type": "Brand", name: product.brand ?? "Voltaria" },
     offers: {
       "@type": "Offer",
@@ -83,24 +85,7 @@ export default async function ProductPage({ params }: { params: Params }) {
       <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1.08fr)_minmax(380px,0.92fr)] lg:gap-10">
         {/* Imagem */}
         <div className="lg:sticky lg:top-24">
-          <div className="relative aspect-square overflow-hidden rounded-xl2 border border-line bg-paper shadow-card">
-            <Image
-              src={product.imageUrl}
-              alt={product.name}
-              fill
-              sizes="(max-width: 1024px) 100vw, 55vw"
-              className="object-cover transition-transform duration-500 hover:scale-[1.02]"
-              priority
-            />
-            {discount ? (
-              <span className="absolute left-4 top-4 rounded-full bg-deal px-3 py-1.5 text-sm font-bold text-white shadow-pop">
-                {discount}% OFF
-              </span>
-            ) : null}
-            <span className={`absolute bottom-4 left-4 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm ${hasStock ? "bg-white text-ok" : "bg-white text-deal"}`}>
-              {hasStock ? "Disponível para envio" : "Produto esgotado"}
-            </span>
-          </div>
+          <ProductImageGallery name={product.name} images={productImages} discount={discount ?? 0} hasStock={hasStock} />
           <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs text-ink-soft">
             <div className="rounded-xl border border-line bg-paper px-2 py-3"><span className="block font-semibold text-ink">Compra segura</span>Ambiente protegido</div>
             <div className="rounded-xl border border-line bg-paper px-2 py-3"><span className="block font-semibold text-ink">Todo o Brasil</span>Consulte seu frete</div>

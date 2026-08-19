@@ -17,6 +17,7 @@ export type ProductInitial = {
   price: string; // em reais
   compareAt: string; // em reais
   imageUrl: string;
+  gallery: string[];
   stock: string;
   featured: boolean;
   active: boolean;
@@ -39,6 +40,7 @@ const empty: ProductInitial = {
   price: "",
   compareAt: "",
   imageUrl: "",
+  gallery: [],
   stock: "0",
   featured: false,
   active: true,
@@ -55,6 +57,7 @@ export function ProductForm({ action, categories, canEditPrice, initial, submitL
   const [state, formAction, pending] = useActionState<ProductFormState, FormData>(action, {});
   const [variants, setVariants] = useState<VariantRow[]>(init.variants);
   const [imageUrl, setImageUrl] = useState(init.imageUrl);
+  const [gallery, setGallery] = useState(init.gallery);
   const [price, setPrice] = useState(init.price);
   const [compareAt, setCompareAt] = useState(init.compareAt);
   const [stock, setStock] = useState(init.stock);
@@ -81,6 +84,16 @@ export function ProductForm({ action, categories, canEditPrice, initial, submitL
 
   function updateVariant(i: number, patch: Partial<VariantRow>) {
     setVariants((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  }
+
+  function updateGallery(index: number, value: string) {
+    setGallery((images) => images.map((image, current) => current === index ? value : image));
+  }
+
+  function moveGallery(index: number, direction: -1 | 1) {
+    const destination = index + direction;
+    if (destination < 0 || destination >= gallery.length) return;
+    setGallery((images) => { const copy = [...images]; [copy[index], copy[destination]] = [copy[destination], copy[index]]; return copy; });
   }
 
   return (
@@ -202,7 +215,7 @@ export function ProductForm({ action, categories, canEditPrice, initial, submitL
       {/* Coluna lateral */}
       <aside className="flex flex-col gap-5 xl:sticky xl:top-28 xl:self-start">
         <div className="rounded-xl2 border border-line bg-paper p-4 shadow-card">
-          <p className="mb-2 text-sm font-medium">Imagem</p>
+          <p className="mb-2 text-sm font-medium">Imagem principal</p>
           <div className="relative mb-3 aspect-square overflow-hidden rounded-lg border border-line bg-mist">
             {imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -219,8 +232,10 @@ export function ProductForm({ action, categories, canEditPrice, initial, submitL
             className="h-11 w-full rounded-xl border border-line px-4 text-sm focus:border-brand"
           />
           <FieldError errors={fe.imageUrl} />
-          <p className="mt-2 text-xs text-ink-muted">Cole uma URL HTTPS. A prévia ajuda a conferir corte e qualidade antes de salvar.</p>
+          <p className="mt-2 text-xs text-ink-muted">Esta é a capa exibida no catálogo e no carrinho.</p>
         </div>
+
+        <div className="rounded-xl2 border border-line bg-paper p-4 shadow-card"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-bold">Galeria do produto</p><p className="text-xs text-ink-muted">Até 8 imagens adicionais</p></div><button type="button" disabled={gallery.length >= 8} onClick={() => setGallery((images) => [...images, ""])} className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-bold text-brand hover:bg-brand-soft disabled:opacity-40">＋ Adicionar</button></div><div className="mt-3 space-y-3">{gallery.map((image, index) => <div key={index} className="rounded-xl border border-line bg-mist/40 p-2"><div className="flex gap-2"><div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-line bg-white">{image ? <img src={image} alt={`Prévia ${index + 1}`} className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center text-xs text-ink-muted">{index + 1}</span>}</div><div className="min-w-0 flex-1"><input type="url" value={image} onChange={(event) => updateGallery(index, event.target.value)} placeholder="https://..." className="h-9 w-full rounded-lg border border-line bg-white px-3 text-xs outline-none focus:border-brand" /><div className="mt-1 flex items-center justify-end gap-1"><button type="button" disabled={index === 0} onClick={() => moveGallery(index, -1)} className="grid h-7 w-7 place-items-center rounded text-xs hover:bg-white disabled:opacity-25" title="Mover para cima">↑</button><button type="button" disabled={index === gallery.length - 1} onClick={() => moveGallery(index, 1)} className="grid h-7 w-7 place-items-center rounded text-xs hover:bg-white disabled:opacity-25" title="Mover para baixo">↓</button><button type="button" onClick={() => setGallery((images) => images.filter((_, current) => current !== index))} className="rounded px-2 py-1 text-[11px] font-bold text-red-600 hover:bg-red-50">Remover</button></div></div></div></div>)}{!gallery.length && <button type="button" onClick={() => setGallery([""])} className="w-full rounded-xl border border-dashed border-line py-5 text-xs font-semibold text-ink-muted hover:border-brand hover:text-brand">Adicionar fotos de outros ângulos</button>}</div><input type="hidden" name="gallery" value={JSON.stringify(gallery.map((image) => image.trim()).filter(Boolean))} /><FieldError errors={fe.gallery} /></div>
 
         <div className="rounded-xl2 border border-line bg-paper p-4 shadow-card"><p className="mb-3 text-xs font-bold uppercase tracking-[.14em] text-ink-muted">Publicação</p><div className="flex flex-col gap-3">
           <label className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 ${active ? "border-emerald-200 bg-emerald-50" : "border-line bg-mist"}`}><span><strong className="block text-sm">Produto ativo</strong><small className="text-xs text-ink-muted">Visível e disponível na loja</small></span>

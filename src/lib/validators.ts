@@ -81,6 +81,7 @@ export const productSchema = z.object({
     .max(MAX_PRICE_REAIS, "Preço muito alto (máx. R$ 999.999,99)")
     .optional(), // preço "de", em reais
   imageUrl: z.string().url("Informe uma URL de imagem válida"),
+  gallery: z.array(z.string().url("Uma das imagens adicionais possui URL inválida")).max(8, "Use no máximo 8 imagens adicionais").default([]),
   stock: z.coerce.number().int().nonnegative().default(0),
   featured: z.boolean().default(false),
   active: z.boolean().default(true),

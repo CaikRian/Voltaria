@@ -35,6 +35,7 @@ export default async function EditarProdutoPage({ params }: { params: Params }) 
     price: toReais(product.priceCents),
     compareAt: toReais(product.compareCents),
     imageUrl: product.imageUrl,
+    gallery: (() => { try { const value = JSON.parse(product.gallery ?? "[]"); return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; } catch { return []; } })(),
     stock: String(product.stock),
     featured: product.featured,
     active: product.active,

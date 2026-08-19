@@ -52,10 +52,16 @@ async function uniqueSlug(base: string, ignoreId?: string): Promise<string> {
 // Lê o FormData e monta o objeto para validação.
 function parseForm(formData: FormData) {
   let variants: unknown = [];
+  let gallery: unknown = [];
   try {
     variants = JSON.parse(String(formData.get("variants") ?? "[]"));
   } catch {
     variants = [];
+  }
+  try {
+    gallery = JSON.parse(String(formData.get("gallery") ?? "[]"));
+  } catch {
+    gallery = [];
   }
   const compareRaw = formData.get("compareAt");
   return {
@@ -66,6 +72,7 @@ function parseForm(formData: FormData) {
     price: formData.get("price"),
     compareAt: compareRaw ? compareRaw : undefined,
     imageUrl: formData.get("imageUrl"),
+    gallery,
     stock: formData.get("stock") ?? 0,
     featured: formData.get("featured") === "on",
     active: formData.get("active") === "on",
@@ -97,6 +104,7 @@ export async function createProduct(
         priceCents: toCents(d.price),
         compareCents: d.compareAt ? toCents(d.compareAt) : null,
         imageUrl: d.imageUrl,
+        gallery: d.gallery.length ? JSON.stringify(d.gallery) : null,
         stock: d.stock,
         featured: d.featured,
         active: d.active,
@@ -170,6 +178,7 @@ export async function updateProduct(
           priceCents,
           compareCents,
           imageUrl: d.imageUrl,
+          gallery: d.gallery.length ? JSON.stringify(d.gallery) : null,
           stock: d.stock,
           featured: d.featured,
           active: d.active,
