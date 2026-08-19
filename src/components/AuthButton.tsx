@@ -1,14 +1,24 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { isStaff, ROLE_LABELS, type Role } from "@/lib/permissions";
 
 export function AuthButton() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  // O redirect após login/cadastro é uma navegação client-side (via server
+  // action), então o SessionProvider não sabe que o cookie mudou — sem isso,
+  // o botão continuava mostrando "Entrar" até um refresh manual da página.
+  useEffect(() => {
+    update();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   // Fecha o menu ao clicar fora.
   useEffect(() => {
