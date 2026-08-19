@@ -9,10 +9,11 @@ function Feedback({ state }: { state: AccountFormState }) {
   return <>{state.error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}{state.success && <p className="rounded-xl bg-green-50 px-3 py-2 text-sm text-green-700">{state.success}</p>}</>;
 }
 
-export function ProfileForm({ name, email, cpf: initialCpf, hasPassword }: { name: string; email: string; cpf: string | null; hasPassword: boolean }) {
+export function ProfileForm({ name, email, cpf: initialCpf, phone: initialPhone, allowEmailUpdates, allowWhatsappUpdates, hasPassword }: { name: string; email: string; cpf: string | null; phone: string | null; allowEmailUpdates: boolean; allowWhatsappUpdates: boolean; hasPassword: boolean }) {
   const [state, action, pending] = useActionState(updateProfileAction, {});
   const { update } = useSession();
   const [cpf, setCpf] = useState(initialCpf ? formatCpf(initialCpf) : "");
+  const [phone, setPhone] = useState(initialPhone ? formatPhone(initialPhone) : "");
   useEffect(() => {
     if (state.profile) void update(state.profile);
   }, [state.profile, update]);
@@ -22,6 +23,8 @@ export function ProfileForm({ name, email, cpf: initialCpf, hasPassword }: { nam
       <label className="block"><span className="text-sm font-medium">Nome da conta</span><input name="name" defaultValue={name} required className="mt-1.5 h-11 w-full rounded-xl border border-line px-4 text-sm focus:border-brand" />{state.fieldErrors?.name && <span className="mt-1 block text-xs text-deal">{state.fieldErrors.name[0]}</span>}</label>
       <label className="block"><span className="text-sm font-medium">E-mail</span><input name="email" type="email" defaultValue={email} required className="mt-1.5 h-11 w-full rounded-xl border border-line px-4 text-sm focus:border-brand" />{state.fieldErrors?.email && <span className="mt-1 block text-xs text-deal">{state.fieldErrors.email[0]}</span>}</label>
       <label className="block"><span className="text-sm font-medium">CPF</span><input name="cpf" inputMode="numeric" value={cpf} onChange={(event) => setCpf(formatCpf(event.target.value))} disabled={!!initialCpf} required={!initialCpf} className="mt-1.5 h-11 w-full rounded-xl border border-line px-4 text-sm focus:border-brand disabled:bg-mist disabled:text-ink-muted" placeholder="000.000.000-00" />{initialCpf && <input type="hidden" name="cpf" value={initialCpf} />}{state.fieldErrors?.cpf && <span className="mt-1 block text-xs text-deal">{state.fieldErrors.cpf[0]}</span>}<span className="mt-1 block text-[10px] text-ink-muted">{initialCpf ? "Por segurança, o CPF não pode ser alterado diretamente." : "Cadastre uma única vez para habilitar a recuperação da conta."}</span></label>
+      <label className="block"><span className="text-sm font-medium">Celular com DDD</span><input name="phone" type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(formatPhone(event.target.value))} required className="mt-1.5 h-11 w-full rounded-xl border border-line px-4 text-sm focus:border-brand" placeholder="(11) 99999-9999" />{state.fieldErrors?.phone && <span className="mt-1 block text-xs text-deal">{state.fieldErrors.phone[0]}</span>}</label>
+      <fieldset className="space-y-2 rounded-xl border border-line bg-mist/50 p-4"><legend className="px-1 text-xs font-bold uppercase tracking-wide text-ink-muted">Comunicações opcionais</legend><label className="flex cursor-pointer items-center gap-3 rounded-lg bg-white p-3 text-sm"><input name="allowWhatsappUpdates" type="checkbox" defaultChecked={allowWhatsappUpdates} className="h-4 w-4 accent-emerald-600" />Receber novidades e atualizações pelo WhatsApp</label><label className="flex cursor-pointer items-center gap-3 rounded-lg bg-white p-3 text-sm"><input name="allowEmailUpdates" type="checkbox" defaultChecked={allowEmailUpdates} className="h-4 w-4 accent-brand" />Receber novidades e atualizações por e-mail</label><p className="text-[10px] text-ink-muted">Desmarque um canal para retirar sua autorização.</p></fieldset>
       {hasPassword && <label className="block"><span className="text-sm font-medium">Senha atual</span><input name="currentPassword" type="password" autoComplete="current-password" placeholder="Necessária somente para mudar o e-mail" className="mt-1.5 h-11 w-full rounded-xl border border-line px-4 text-sm focus:border-brand" /></label>}
       {!hasPassword && <p className="text-xs text-ink-muted">O e-mail é administrado pelo seu provedor de login. Você ainda pode alterar o nome.</p>}
       <Button type="submit" disabled={pending}>{pending ? "Salvando..." : "Salvar dados pessoais"}</Button>
@@ -30,6 +33,7 @@ export function ProfileForm({ name, email, cpf: initialCpf, hasPassword }: { nam
 }
 
 function formatCpf(value: string) { return value.replace(/\D/g, "").slice(0, 11).replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2"); }
+function formatPhone(value: string) { const digits = value.replace(/\D/g, "").slice(0, 11); if (digits.length <= 10) return digits.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d)/, "$1-$2"); return digits.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2"); }
 
 export function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
   const [state, action, pending] = useActionState(changePasswordAction, {});

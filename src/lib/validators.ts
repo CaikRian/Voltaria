@@ -19,11 +19,15 @@ export function isValidCpf(value: string) {
 }
 
 export const cpfSchema = z.string().transform((value) => value.replace(/\D/g, "")).refine(isValidCpf, "Informe um CPF válido");
+export const phoneSchema = z.string().transform((value) => value.replace(/\D/g, "")).refine((value) => /^(?:[1-9]{2})(?:9\d{8}|[2-8]\d{7})$/.test(value), "Informe um telefone com DDD válido");
 
 export const registerSchema = z
   .object({
     name: z.string().min(2, "Informe seu nome"),
     cpf: cpfSchema,
+    phone: phoneSchema,
+    allowEmailUpdates: z.boolean().default(false),
+    allowWhatsappUpdates: z.boolean().default(false),
     email: z.string().email("E-mail inválido"),
     password: z
       .string()
@@ -44,6 +48,9 @@ export const profileSchema = z.object({
   name: z.string().trim().min(2, "Informe seu nome").max(120, "Nome muito longo"),
   email: z.string().trim().toLowerCase().email("E-mail inválido"),
   cpf: z.union([cpfSchema, z.literal("")]).optional().default(""),
+  phone: z.union([phoneSchema, z.literal("")]).optional().default(""),
+  allowEmailUpdates: z.boolean().default(false),
+  allowWhatsappUpdates: z.boolean().default(false),
   currentPassword: z.string().optional().default(""),
 });
 

@@ -4,7 +4,7 @@ export async function getAccountOverview(userId: string) {
   return prisma.user.findUnique({
     where: { id: userId },
     select: {
-      name: true, email: true, cpf: true, image: true, passwordHash: true, createdAt: true,
+      name: true, email: true, cpf: true, phone: true, allowEmailUpdates: true, allowWhatsappUpdates: true, image: true, passwordHash: true, createdAt: true,
       accounts: { select: { provider: true } },
       _count: { select: { orders: true, reviews: true, addresses: true } },
     },

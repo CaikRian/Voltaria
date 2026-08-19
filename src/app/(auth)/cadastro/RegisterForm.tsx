@@ -16,6 +16,7 @@ export function RegisterForm() {
   const [state, action, pending] = useActionState(registerAction, initial);
   const fe = state.fieldErrors ?? {};
   const [cpf, setCpf] = useState("");
+  const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   return (
@@ -38,7 +39,9 @@ export function RegisterForm() {
 
       <label className="flex flex-col gap-1.5"><span className="text-sm font-medium">CPF</span><input name="cpf" inputMode="numeric" autoComplete="off" required value={cpf} onChange={(event) => setCpf(formatCpf(event.target.value))} maxLength={14} className="h-11 rounded-xl border border-line px-4 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/10" placeholder="000.000.000-00" /><FieldError errors={fe.cpf} /><span className="text-[10px] text-ink-muted">Um CPF pode estar vinculado a apenas uma conta.</span></label>
 
-      <label className="flex flex-col gap-1.5">
+      <label className="flex flex-col gap-1.5"><span className="text-sm font-medium">Celular com DDD</span><input name="phone" type="tel" inputMode="tel" autoComplete="tel" required value={phone} onChange={(event) => setPhone(formatPhone(event.target.value))} maxLength={15} className="h-11 rounded-xl border border-line px-4 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/10" placeholder="(11) 99999-9999" /><FieldError errors={fe.phone} /><span className="text-[10px] text-ink-muted">Usado somente conforme suas preferências abaixo.</span></label>
+
+      <label className="flex flex-col gap-1.5 sm:col-span-2">
         <span className="text-sm font-medium">E-mail</span>
         <input
           name="email"
@@ -79,6 +82,8 @@ export function RegisterForm() {
 
       <label className="flex cursor-pointer items-center gap-2 text-xs text-ink-soft sm:col-span-2"><input type="checkbox" checked={showPassword} onChange={(event) => setShowPassword(event.target.checked)} className="h-4 w-4 accent-brand" />Mostrar senhas</label>
 
+      <fieldset className="space-y-2 rounded-xl border border-line bg-mist/50 p-4 sm:col-span-2"><legend className="px-1 text-xs font-black uppercase tracking-[.12em] text-ink-muted">Preferências de comunicação</legend><p className="mb-3 text-xs text-ink-muted">Opcional. Escolha por onde deseja receber novidades, ofertas e informações sobre suas compras.</p><label className="flex cursor-pointer items-start gap-3 rounded-lg bg-white p-3 text-sm"><input type="checkbox" name="allowWhatsappUpdates" className="mt-0.5 h-4 w-4 shrink-0 accent-emerald-600" /><span><strong className="block text-ink">WhatsApp</strong><small className="text-ink-muted">Receber atualizações e novidades no celular informado.</small></span></label><label className="flex cursor-pointer items-start gap-3 rounded-lg bg-white p-3 text-sm"><input type="checkbox" name="allowEmailUpdates" className="mt-0.5 h-4 w-4 shrink-0 accent-brand" /><span><strong className="block text-ink">E-mail</strong><small className="text-ink-muted">Receber atualizações e novidades no e-mail da conta.</small></span></label><p className="pt-1 text-[10px] text-ink-muted">Você poderá retirar essas autorizações quando quiser em “Meus dados”.</p></fieldset>
+
       <Button type="submit" size="lg" disabled={pending} className="mt-1 w-full sm:col-span-2">
         {pending ? "Criando conta..." : "Criar conta"}
       </Button>
@@ -99,3 +104,4 @@ export function RegisterForm() {
 }
 
 function formatCpf(value: string) { return value.replace(/\D/g, "").slice(0, 11).replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2"); }
+function formatPhone(value: string) { const digits = value.replace(/\D/g, "").slice(0, 11); if (digits.length <= 10) return digits.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d)/, "$1-$2"); return digits.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2"); }

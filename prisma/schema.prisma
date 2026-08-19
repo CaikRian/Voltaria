@@ -82,6 +82,10 @@ model User {
   id            String    @id @default(cuid())
   email         String    @unique
   cpf           String?   @unique // somente 11 dígitos; nullable para contas antigas/sociais
+  phone         String?   // DDD + número, somente dígitos (10 ou 11)
+  allowEmailUpdates    Boolean @default(false)
+  allowWhatsappUpdates Boolean @default(false)
+  communicationConsentAt DateTime?
   name          String?
   image         String? // avatar (ex.: vindo do Google)
   passwordHash  String? // hash Argon2/bcrypt — nulo para contas só-social

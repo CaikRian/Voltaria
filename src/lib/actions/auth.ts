@@ -16,6 +16,9 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
   const parsed = registerSchema.safeParse({
     name: formData.get("name"),
     cpf: formData.get("cpf"),
+    phone: formData.get("phone"),
+    allowEmailUpdates: formData.get("allowEmailUpdates") === "on",
+    allowWhatsappUpdates: formData.get("allowWhatsappUpdates") === "on",
     email: formData.get("email"),
     password: formData.get("password"),
     confirm: formData.get("confirm"),
@@ -25,7 +28,7 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  const { name, cpf, email, password } = parsed.data;
+  const { name, cpf, phone, email, password, allowEmailUpdates, allowWhatsappUpdates } = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -38,7 +41,7 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
   const passwordHash = await bcrypt.hash(password, 12);
 
   try {
-    await prisma.user.create({ data: { name, cpf, email, passwordHash, role: "CLIENTE" } });
+    await prisma.user.create({ data: { name, cpf, phone, email, passwordHash, role: "CLIENTE", allowEmailUpdates, allowWhatsappUpdates, communicationConsentAt: allowEmailUpdates || allowWhatsappUpdates ? new Date() : null } });
   } catch (error) {
     if (typeof error === "object" && error && "code" in error && error.code === "P2002") return { error: "E-mail ou CPF já cadastrado." };
     throw error;
