@@ -14,6 +14,7 @@ export default async function PainelLayout({ children }: { children: React.React
     { href: "/painel/produtos", label: "Produtos", icon: "▦" },
     { href: "/painel/pedidos", label: "Pedidos", icon: "□", badge: counts.refunds },
     { href: "/painel/conversas", label: "Conversas", icon: "✦", badge: counts.chats },
+    { href: "/painel/relatorios", label: "Relatórios", icon: "↗" },
     ...(can(user.role, "question:answer") ? [{ href: "/painel/duvidas", label: "Dúvidas", icon: "?", badge: counts.questions }] : []),
     ...(can(user.role, "content:moderate") ? [{ href: "/painel/avaliacoes", label: "Avaliações", icon: "★" }] : []),
     ...(can(user.role, "user:manage") ? [{ href: "/painel/usuarios", label: "Equipe", icon: "♙" }] : []),

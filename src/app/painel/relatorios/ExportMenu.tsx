@@ -1,0 +1,8 @@
+"use client";
+
+import { useState } from "react";
+
+export function ExportMenu({ period }: { period: string }) {
+  const [type, setType] = useState("sales"); const formats = [{ value: "pdf", label: "PDF" }, { value: "xlsx", label: "Excel (.xlsx)" }, { value: "xls", label: "Excel antigo (.xls)" }, { value: "csv", label: "CSV" }, { value: "json", label: "JSON" }, { value: "svg", label: "Imagem (.svg)" }];
+  return <div className="rounded-xl2 border border-line bg-paper p-5 shadow-card"><div><p className="font-display text-lg font-semibold">Central de exportação</p><p className="mt-1 text-sm text-ink-muted">Escolha o conteúdo e baixe no formato desejado.</p></div><div className="mt-4 grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold text-ink-muted">RELATÓRIO<select value={type} onChange={(event) => setType(event.target.value)} className="mt-1 h-11 w-full rounded-xl border border-line bg-white px-3 text-sm text-ink"><option value="sales">Vendas por dia</option><option value="orders">Pedidos detalhados</option><option value="products">Produtos e estoque</option><option value="customers">Clientes</option><option value="payments">Pagamentos</option><option value="service">Atendimento e reputação</option></select></label><div className="text-xs font-semibold text-ink-muted">FORMATO<div className="mt-1 grid grid-cols-2 gap-2">{formats.map((format) => <a key={format.value} href={`/api/painel/relatorios?period=${period}&type=${type}&format=${format.value}`} className="rounded-xl border border-line bg-mist px-3 py-2.5 text-center text-xs font-bold text-ink hover:border-brand hover:bg-brand-soft hover:text-brand">{format.label}</a>)}</div></div></div></div>;
+}
