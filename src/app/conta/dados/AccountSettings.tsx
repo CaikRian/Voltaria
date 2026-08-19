@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { changePasswordAction, updateProfileAction, type AccountFormState } from "@/lib/actions/account";
 import { Button } from "@/components/ui/Button";
@@ -9,9 +9,10 @@ function Feedback({ state }: { state: AccountFormState }) {
   return <>{state.error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}{state.success && <p className="rounded-xl bg-green-50 px-3 py-2 text-sm text-green-700">{state.success}</p>}</>;
 }
 
-export function ProfileForm({ name, email, hasPassword }: { name: string; email: string; hasPassword: boolean }) {
+export function ProfileForm({ name, email, cpf: initialCpf, hasPassword }: { name: string; email: string; cpf: string | null; hasPassword: boolean }) {
   const [state, action, pending] = useActionState(updateProfileAction, {});
   const { update } = useSession();
+  const [cpf, setCpf] = useState(initialCpf ? formatCpf(initialCpf) : "");
   useEffect(() => {
     if (state.profile) void update(state.profile);
   }, [state.profile, update]);
@@ -20,12 +21,15 @@ export function ProfileForm({ name, email, hasPassword }: { name: string; email:
       <Feedback state={state} />
       <label className="block"><span className="text-sm font-medium">Nome da conta</span><input name="name" defaultValue={name} required className="mt-1.5 h-11 w-full rounded-xl border border-line px-4 text-sm focus:border-brand" />{state.fieldErrors?.name && <span className="mt-1 block text-xs text-deal">{state.fieldErrors.name[0]}</span>}</label>
       <label className="block"><span className="text-sm font-medium">E-mail</span><input name="email" type="email" defaultValue={email} required className="mt-1.5 h-11 w-full rounded-xl border border-line px-4 text-sm focus:border-brand" />{state.fieldErrors?.email && <span className="mt-1 block text-xs text-deal">{state.fieldErrors.email[0]}</span>}</label>
+      <label className="block"><span className="text-sm font-medium">CPF</span><input name="cpf" inputMode="numeric" value={cpf} onChange={(event) => setCpf(formatCpf(event.target.value))} disabled={!!initialCpf} required={!initialCpf} className="mt-1.5 h-11 w-full rounded-xl border border-line px-4 text-sm focus:border-brand disabled:bg-mist disabled:text-ink-muted" placeholder="000.000.000-00" />{initialCpf && <input type="hidden" name="cpf" value={initialCpf} />}{state.fieldErrors?.cpf && <span className="mt-1 block text-xs text-deal">{state.fieldErrors.cpf[0]}</span>}<span className="mt-1 block text-[10px] text-ink-muted">{initialCpf ? "Por segurança, o CPF não pode ser alterado diretamente." : "Cadastre uma única vez para habilitar a recuperação da conta."}</span></label>
       {hasPassword && <label className="block"><span className="text-sm font-medium">Senha atual</span><input name="currentPassword" type="password" autoComplete="current-password" placeholder="Necessária somente para mudar o e-mail" className="mt-1.5 h-11 w-full rounded-xl border border-line px-4 text-sm focus:border-brand" /></label>}
       {!hasPassword && <p className="text-xs text-ink-muted">O e-mail é administrado pelo seu provedor de login. Você ainda pode alterar o nome.</p>}
       <Button type="submit" disabled={pending}>{pending ? "Salvando..." : "Salvar dados pessoais"}</Button>
     </form>
   );
 }
+
+function formatCpf(value: string) { return value.replace(/\D/g, "").slice(0, 11).replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2"); }
 
 export function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
   const [state, action, pending] = useActionState(changePasswordAction, {});

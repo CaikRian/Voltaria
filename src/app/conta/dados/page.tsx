@@ -24,7 +24,7 @@ export default async function ContaDadosPage() {
         <div className="space-y-6">
           <section className="rounded-xl2 border border-line bg-paper p-5 shadow-card sm:p-6">
             <div className="mb-5"><p className="font-display text-lg font-semibold">Informações pessoais</p><p className="mt-1 text-sm text-ink-muted">Dados utilizados para identificar sua conta.</p></div>
-            <ProfileForm name={account.name ?? ""} email={account.email} hasPassword={hasPassword} />
+            <ProfileForm name={account.name ?? ""} email={account.email} cpf={account.cpf} hasPassword={hasPassword} />
           </section>
 
           <section className="rounded-xl2 border border-line bg-paper p-5 shadow-card sm:p-6">

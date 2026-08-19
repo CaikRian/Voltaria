@@ -7,9 +7,23 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Informe a senha"),
 });
 
+export function isValidCpf(value: string) {
+  const cpf = value.replace(/\D/g, "");
+  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
+  const digit = (length: number) => {
+    const sum = cpf.slice(0, length).split("").reduce((total, number, index) => total + Number(number) * (length + 1 - index), 0);
+    const remainder = (sum * 10) % 11;
+    return remainder === 10 ? 0 : remainder;
+  };
+  return digit(9) === Number(cpf[9]) && digit(10) === Number(cpf[10]);
+}
+
+export const cpfSchema = z.string().transform((value) => value.replace(/\D/g, "")).refine(isValidCpf, "Informe um CPF válido");
+
 export const registerSchema = z
   .object({
     name: z.string().min(2, "Informe seu nome"),
+    cpf: cpfSchema,
     email: z.string().email("E-mail inválido"),
     password: z
       .string()
@@ -29,6 +43,7 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 export const profileSchema = z.object({
   name: z.string().trim().min(2, "Informe seu nome").max(120, "Nome muito longo"),
   email: z.string().trim().toLowerCase().email("E-mail inválido"),
+  cpf: z.union([cpfSchema, z.literal("")]).optional().default(""),
   currentPassword: z.string().optional().default(""),
 });
 

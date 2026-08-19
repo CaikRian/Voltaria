@@ -15,6 +15,7 @@ export type FormState = {
 export async function registerAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const parsed = registerSchema.safeParse({
     name: formData.get("name"),
+    cpf: formData.get("cpf"),
     email: formData.get("email"),
     password: formData.get("password"),
     confirm: formData.get("confirm"),
@@ -24,19 +25,24 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  const { name, email, password } = parsed.data;
+  const { name, cpf, email, password } = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     return { error: "Já existe uma conta com este e-mail." };
   }
+  const existingCpf = await prisma.user.findUnique({ where: { cpf } });
+  if (existingCpf) return { error: "Este CPF já está vinculado a uma conta." };
 
   // Hash da senha — NUNCA salvamos a senha em texto puro.
   const passwordHash = await bcrypt.hash(password, 12);
 
-  await prisma.user.create({
-    data: { name, email, passwordHash, role: "CLIENTE" },
-  });
+  try {
+    await prisma.user.create({ data: { name, cpf, email, passwordHash, role: "CLIENTE" } });
+  } catch (error) {
+    if (typeof error === "object" && error && "code" in error && error.code === "P2002") return { error: "E-mail ou CPF já cadastrado." };
+    throw error;
+  }
 
   // Loga automaticamente após cadastrar e leva para a área do cliente.
   // (redirectTo lança um redirect que deve propagar — por isso o try/catch abaixo.)

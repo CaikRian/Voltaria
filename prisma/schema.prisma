@@ -81,6 +81,7 @@ model Variant {
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
+  cpf           String?   @unique // somente 11 dígitos; nullable para contas antigas/sociais
   name          String?
   image         String? // avatar (ex.: vindo do Google)
   passwordHash  String? // hash Argon2/bcrypt — nulo para contas só-social
@@ -95,6 +96,19 @@ model User {
   accounts     Account[] // logins sociais vinculados
   sessions     Session[]
   orderMessages OrderMessage[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 // Endereços salvos do cliente — só pra usuários logados (checkout de convidado

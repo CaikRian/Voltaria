@@ -18,13 +18,14 @@ export type AccountFormState = {
 export async function updateProfileAction(_previous: AccountFormState, formData: FormData): Promise<AccountFormState> {
   const sessionUser = await requireUser();
   const parsed = profileSchema.safeParse({
-    name: formData.get("name"), email: formData.get("email"), currentPassword: formData.get("currentPassword") ?? "",
+    name: formData.get("name"), email: formData.get("email"), cpf: formData.get("cpf") ?? "", currentPassword: formData.get("currentPassword") ?? "",
   });
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
 
-  const account = await prisma.user.findUnique({ where: { id: sessionUser.id }, select: { email: true, passwordHash: true } });
+  const account = await prisma.user.findUnique({ where: { id: sessionUser.id }, select: { email: true, cpf: true, passwordHash: true } });
   if (!account) return { error: "Conta não encontrada." };
   const emailChanged = parsed.data.email !== account.email;
+  if (!account.cpf && !parsed.data.cpf) return { fieldErrors: { cpf: ["Cadastre seu CPF para proteger e recuperar sua conta"] } };
 
   if (emailChanged && !account.passwordHash) {
     return { error: "O e-mail desta conta é administrado pelo provedor de login e não pode ser alterado aqui." };
@@ -34,10 +35,10 @@ export async function updateProfileAction(_previous: AccountFormState, formData:
   }
 
   try {
-    await prisma.user.update({ where: { id: sessionUser.id }, data: { name: parsed.data.name, email: parsed.data.email } });
+    await prisma.user.update({ where: { id: sessionUser.id }, data: { name: parsed.data.name, email: parsed.data.email, ...(!account.cpf ? { cpf: parsed.data.cpf } : {}) } });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return { error: "Este e-mail já está vinculado a outra conta." };
+      return { error: "Este e-mail ou CPF já está vinculado a outra conta." };
     }
     throw error;
   }

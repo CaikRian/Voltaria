@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { registerAction, type FormState } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/Button";
 
@@ -15,14 +15,16 @@ function FieldError({ errors }: { errors?: string[] }) {
 export function RegisterForm() {
   const [state, action, pending] = useActionState(registerAction, initial);
   const fe = state.fieldErrors ?? {};
+  const [cpf, setCpf] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form action={action} className="grid gap-4 sm:grid-cols-2">
       {state.error && (
-        <p className="rounded-lg bg-deal/10 px-3 py-2 text-sm text-deal">{state.error}</p>
+        <p className="rounded-lg bg-deal/10 px-3 py-2 text-sm text-deal sm:col-span-2">{state.error}</p>
       )}
 
-      <label className="flex flex-col gap-1.5">
+      <label className="flex flex-col gap-1.5 sm:col-span-2">
         <span className="text-sm font-medium">Nome completo</span>
         <input
           name="name"
@@ -33,6 +35,8 @@ export function RegisterForm() {
         />
         <FieldError errors={fe.name} />
       </label>
+
+      <label className="flex flex-col gap-1.5"><span className="text-sm font-medium">CPF</span><input name="cpf" inputMode="numeric" autoComplete="off" required value={cpf} onChange={(event) => setCpf(formatCpf(event.target.value))} maxLength={14} className="h-11 rounded-xl border border-line px-4 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/10" placeholder="000.000.000-00" /><FieldError errors={fe.cpf} /><span className="text-[10px] text-ink-muted">Um CPF pode estar vinculado a apenas uma conta.</span></label>
 
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium">E-mail</span>
@@ -51,7 +55,7 @@ export function RegisterForm() {
         <span className="text-sm font-medium">Senha</span>
         <input
           name="password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           autoComplete="new-password"
           required
           className="h-11 rounded-xl border border-line px-4 text-sm focus:border-brand"
@@ -64,7 +68,7 @@ export function RegisterForm() {
         <span className="text-sm font-medium">Confirmar senha</span>
         <input
           name="confirm"
-          type="password"
+          type={showPassword ? "text" : "password"}
           autoComplete="new-password"
           required
           className="h-11 rounded-xl border border-line px-4 text-sm focus:border-brand"
@@ -73,16 +77,18 @@ export function RegisterForm() {
         <FieldError errors={fe.confirm} />
       </label>
 
-      <Button type="submit" size="lg" disabled={pending} className="mt-1 w-full">
+      <label className="flex cursor-pointer items-center gap-2 text-xs text-ink-soft sm:col-span-2"><input type="checkbox" checked={showPassword} onChange={(event) => setShowPassword(event.target.checked)} className="h-4 w-4 accent-brand" />Mostrar senhas</label>
+
+      <Button type="submit" size="lg" disabled={pending} className="mt-1 w-full sm:col-span-2">
         {pending ? "Criando conta..." : "Criar conta"}
       </Button>
 
-      <p className="text-center text-xs text-ink-muted">
+      <p className="text-center text-xs text-ink-muted sm:col-span-2">
         Ao criar a conta, você concorda com a Política de Privacidade e o tratamento dos seus dados
         conforme a LGPD.
       </p>
 
-      <p className="text-center text-sm text-ink-soft">
+      <p className="text-center text-sm text-ink-soft sm:col-span-2">
         Já tem conta?{" "}
         <Link href="/login" className="font-medium text-brand hover:underline">
           Entrar
@@ -91,3 +97,5 @@ export function RegisterForm() {
     </form>
   );
 }
+
+function formatCpf(value: string) { return value.replace(/\D/g, "").slice(0, 11).replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2"); }
