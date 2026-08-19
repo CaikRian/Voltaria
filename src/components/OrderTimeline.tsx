@@ -59,6 +59,7 @@ const NEXT_STEP: Partial<Record<OrderStatus, string>> = {
 
 function formatEventDate(value: Date | string) {
   return new Date(value).toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
     day: "2-digit",
     month: "short",
     hour: "2-digit",

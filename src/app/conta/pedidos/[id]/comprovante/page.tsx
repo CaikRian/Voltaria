@@ -15,6 +15,7 @@ type Params = Promise<{ id: string }>;
 function formatDate(value?: string | Date | null) {
   if (!value) return "—";
   return new Date(value).toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
     dateStyle: "long",
     timeStyle: "short",
   });

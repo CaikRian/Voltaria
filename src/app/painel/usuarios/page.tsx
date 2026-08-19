@@ -55,7 +55,7 @@ export default async function PainelUsuariosPage({ searchParams }: { searchParam
                   <div>
                     <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-soft font-display font-bold text-brand">{(u.name ?? u.email).charAt(0).toUpperCase()}</span><div><p className="font-medium">{u.name ?? "Sem nome"}</p>
                     <p className="text-sm text-ink-muted">{u.email}</p>
-                    <p className="mt-1 text-[10px] uppercase tracking-wide text-ink-muted">Desde {new Date(u.createdAt).toLocaleDateString("pt-BR")}</p></div></div>
+                    <p className="mt-1 text-[10px] uppercase tracking-wide text-ink-muted">Desde {new Date(u.createdAt).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}</p></div></div>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <span className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium">

@@ -98,7 +98,7 @@ export default async function AbandonedOrdersPage() {
                   <td className="px-4 py-3 font-medium">{formatBRL(order.totalCents)}</td>
                   <td className="px-4 py-3 text-xs text-ink-muted">
                     {order.abandonedAt
-                      ? new Date(order.abandonedAt).toLocaleString("pt-BR")
+                      ? new Date(order.abandonedAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
                       : "—"}
                   </td>
                   <td className="px-4 py-3">

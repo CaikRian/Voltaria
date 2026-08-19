@@ -30,7 +30,7 @@ export default async function PainelAvaliacoesPage() {
                     {r.product.name}
                   </Link>
                   <p className="text-xs text-ink-muted">
-                    {r.user.name ?? r.user.email} · {new Date(r.createdAt).toLocaleDateString("pt-BR")}
+                    {r.user.name ?? r.user.email} · {new Date(r.createdAt).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                     {r.hidden && <span className="ml-2 rounded bg-deal/10 px-1.5 py-0.5 text-[10px] font-medium text-deal">oculta</span>}
                   </p>
                 </div>

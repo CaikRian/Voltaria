@@ -42,7 +42,7 @@ export default async function PainelDuvidasPage({ searchParams }: { searchParams
                     {q.product.name}
                   </Link>
                   <p className="mt-1 text-xs text-ink-muted">
-                    {q.user.name ?? q.user.email} · {new Date(q.createdAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                    {q.user.name ?? q.user.email} · {new Date(q.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}
                     {!q.answeredAt && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">nova</span>}
                     {q.hidden && <span className="ml-2 rounded bg-deal/10 px-1.5 py-0.5 text-[10px] font-medium text-deal">oculta</span>}
                   </p>
@@ -55,7 +55,7 @@ export default async function PainelDuvidasPage({ searchParams }: { searchParams
 
               {q.answer ? (
                 <div className="mt-3 rounded-lg bg-mist p-3">
-                  <p className="text-xs font-medium text-ink-muted">Resposta de {q.answeredBy}{q.answeredAt ? ` · ${new Date(q.answeredAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}` : ""}</p>
+                  <p className="text-xs font-medium text-ink-muted">Resposta de {q.answeredBy}{q.answeredAt ? ` · ${new Date(q.answeredAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}` : ""}</p>
                   <p className="mt-1 text-sm">{q.answer}</p>
                 </div>
               ) : (

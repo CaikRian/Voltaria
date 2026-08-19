@@ -94,7 +94,7 @@ export function ReviewsPanel({ reviews, form }: Props) {
               <div className="flex items-center justify-between">
                 <StarRating value={r.rating} />
                 <span className="text-xs text-ink-muted">
-                  {r.pending ? "Enviando..." : new Date(r.createdAt).toLocaleDateString("pt-BR")}
+                  {r.pending ? "Enviando..." : new Date(r.createdAt).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                 </span>
               </div>
               <p className="mt-1 text-sm font-medium">{r.user.name ?? "Cliente Voltaria"}</p>

@@ -164,9 +164,9 @@ export function OrderMessageThread({ orderId, mode, messages, closed = false }: 
           visibleMessages.map((message, index) => {
             const isClient = message.senderRole === "CLIENTE";
             const isOwn = mode === "customer" ? isClient : !isClient;
-            const dateLabel = new Date(message.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
-            const previousDate = index ? new Date(visibleMessages[index - 1].createdAt).toDateString() : null;
-            const showDate = previousDate !== new Date(message.createdAt).toDateString();
+            const dateLabel = new Date(message.createdAt).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "long", year: "numeric" });
+            const previousDate = index ? new Date(visibleMessages[index - 1].createdAt).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }) : null;
+            const showDate = previousDate !== new Date(message.createdAt).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
             return (
               <div key={message.id}>
               {showDate && <div className="my-3 flex items-center gap-3"><span className="h-px flex-1 bg-line" /><span className="rounded-full border border-line bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">{dateLabel}</span><span className="h-px flex-1 bg-line" /></div>}
@@ -185,7 +185,7 @@ export function OrderMessageThread({ orderId, mode, messages, closed = false }: 
                       {formatSender(message.senderRole)}
                     </strong>
                     <span className={`text-[10px] ${isOwn ? "text-white/70" : "text-ink-muted"}`}>
-                      {new Date(message.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(message.createdAt).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
                   <RichMessage text={message.text} />

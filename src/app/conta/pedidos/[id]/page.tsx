@@ -54,7 +54,7 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
             </div>
             {statusMeta && <p className="mt-2 max-w-2xl text-sm text-ink-soft">{statusMeta.description}</p>}
             <p className="mt-3 text-xs text-ink-muted">
-              Realizado em {new Date(order.createdAt).toLocaleString("pt-BR")} · Atualizado em {new Date(order.updatedAt).toLocaleString("pt-BR")}
+              Realizado em {new Date(order.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · Atualizado em {new Date(order.updatedAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
             </p>
           </div>
           <div className="rounded-xl bg-paper/90 px-5 py-3 shadow-sm ring-1 ring-line sm:text-right">

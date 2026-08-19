@@ -51,7 +51,7 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-slate-900 via-brand-dark to-brand p-6 text-white shadow-pop sm:p-8">
         <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative"><Link href="/painel/pedidos" className="text-sm font-medium text-white/70 hover:text-white">← Voltar para pedidos</Link><div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">Central do pedido</p><div className="mt-2 flex flex-wrap items-center gap-3"><h2 className="font-display text-3xl font-semibold">Pedido #{order.id.slice(-8)}</h2><OrderStatusBadge status={order.status} /></div><p className="mt-2 text-sm text-white/65">Criado em {new Date(order.createdAt).toLocaleString("pt-BR")} · atualizado em {new Date(order.updatedAt).toLocaleString("pt-BR")}</p></div><div className="rounded-2xl bg-white/10 px-5 py-3 backdrop-blur"><p className="text-xs uppercase tracking-wide text-white/60">Valor total</p><p className="font-display text-2xl font-bold">{formatBRL(order.totalCents)}</p></div></div></div>
+        <div className="relative"><Link href="/painel/pedidos" className="text-sm font-medium text-white/70 hover:text-white">← Voltar para pedidos</Link><div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">Central do pedido</p><div className="mt-2 flex flex-wrap items-center gap-3"><h2 className="font-display text-3xl font-semibold">Pedido #{order.id.slice(-8)}</h2><OrderStatusBadge status={order.status} /></div><p className="mt-2 text-sm text-white/65">Criado em {new Date(order.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · atualizado em {new Date(order.updatedAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</p></div><div className="rounded-2xl bg-white/10 px-5 py-3 backdrop-blur"><p className="text-xs uppercase tracking-wide text-white/60">Valor total</p><p className="font-display text-2xl font-bold">{formatBRL(order.totalCents)}</p></div></div></div>
       </section>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -135,7 +135,7 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
                       <OrderStatusBadge status={event.status} />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="text-ink-soft">{new Date(event.createdAt).toLocaleString("pt-BR")}</p>
+                      <p className="text-ink-soft">{new Date(event.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</p>
                       {isMessage ? (
                         <p className="mt-1 whitespace-pre-wrap text-ink-soft">{event.text}</p>
                       ) : (

@@ -88,6 +88,7 @@ export default async function PainelPedidosPage({ searchParams }: { searchParams
                   </span>
                   <span className="hidden text-sm text-ink-soft sm:block">
                     {new Date(o.createdAt).toLocaleDateString("pt-BR", {
+                      timeZone: "America/Sao_Paulo",
                       day: "2-digit",
                       month: "2-digit",
                       year: "numeric",

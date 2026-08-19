@@ -46,8 +46,16 @@ export async function getSellerDashboardSummary() {
   // teve alguma mensagem de cliente" — o que deixava o card preso em "pendente"
   // pra sempre, mesmo depois da equipe responder.
   const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const brasiliaParts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", year: "numeric", month: "numeric", day: "numeric" })
+      .formatToParts(now)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, Number(part.value)])
+  );
+  // Brasília está em UTC-3 desde 2019. Construímos os limites em UTC para que a
+  // consulta ao banco vire o dia às 00:00 de São Paulo, e não às 00:00 da Vercel.
+  const startOfDay = new Date(Date.UTC(brasiliaParts.year, brasiliaParts.month - 1, brasiliaParts.day, 3));
+  const startOfMonth = new Date(Date.UTC(brasiliaParts.year, brasiliaParts.month - 1, 1, 3));
   const paidStatuses = ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO", "ENVIADO", "ENTREGUE"];
 
   const [awaitingApproval, refundRequests, pendingShipment, chatPending, unansweredQuestions, pendingMessages, salesToday, salesMonth, recentOrders, products] = await Promise.all([

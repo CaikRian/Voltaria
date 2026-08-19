@@ -32,7 +32,7 @@ const STATUS_ACCENT: Record<OrderStatus, string> = {
 };
 
 function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "short", year: "numeric" }).format(date);
 }
 
 function progressFor(status: string) {
