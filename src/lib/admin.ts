@@ -167,7 +167,7 @@ export async function getSellerDashboardSummary() {
 export async function getPanelNavigationCounts() {
   const [questions, chats, refunds] = await Promise.all([
     prisma.question.count({ where: { answeredAt: null, hidden: false } }),
-    prisma.order.count({ where: { awaitingReplyFrom: "STAFF", chatClosedAt: null } }),
+    prisma.order.count({ where: { awaitingReplyFrom: "STAFF", chatClosedAt: null, status: { not: "CANCELADO" } } }),
     prisma.order.count({ where: { status: "REEMBOLSO_SOLICITADO" } }),
   ]);
   return { questions, chats, refunds };
@@ -184,15 +184,24 @@ export async function getAdminConversations(opts: {
   const queue = opts.queue ?? "open";
   const page = Math.max(opts.page ?? 1, 1);
   const pageSize = Math.min(Math.max(opts.pageSize ?? 10, 5), 30);
+  // CANCELADO é sempre tratado como atendimento encerrado, inclusive em pedidos
+  // antigos que ainda não possuíam chatClosedAt preenchido.
+  const queueWhere = queue === "waiting"
+    ? { awaitingReplyFrom: "STAFF", chatClosedAt: null, status: { not: "CANCELADO" } }
+    : queue === "customer"
+      ? { awaitingReplyFrom: "CLIENTE", chatClosedAt: null, status: { not: "CANCELADO" } }
+      : queue === "closed"
+        ? { OR: [{ chatClosedAt: { not: null } }, { status: "CANCELADO" }] }
+        : queue === "open"
+          ? { chatClosedAt: null, status: { not: "CANCELADO" } }
+          : {};
   const where = {
-    messages: { some: {} },
-    ...(queue === "waiting" ? { awaitingReplyFrom: "STAFF", chatClosedAt: null }
-      : queue === "customer" ? { awaitingReplyFrom: "CLIENTE", chatClosedAt: null }
-      : queue === "closed" ? { chatClosedAt: { not: null } }
-      : queue === "open" ? { chatClosedAt: null }
-      : {}),
-    ...(opts.status ? { status: opts.status } : {}),
-    ...(opts.q ? { OR: [{ id: { contains: opts.q } }, { email: { contains: opts.q } }, { shipName: { contains: opts.q } }] } : {}),
+    AND: [
+      { messages: { some: {} } },
+      queueWhere,
+      ...(opts.status ? [{ status: opts.status }] : []),
+      ...(opts.q ? [{ OR: [{ id: { contains: opts.q } }, { email: { contains: opts.q } }, { shipName: { contains: opts.q } }] }] : []),
+    ],
   };
   const orderBy = opts.sort === "oldest" ? { updatedAt: "asc" as const }
     : opts.sort === "messages" ? { messages: { _count: "desc" as const } }
@@ -212,10 +221,10 @@ export async function getAdminConversations(opts: {
       take: pageSize,
     }),
     prisma.order.count({ where }),
-    prisma.order.count({ where: { messages: { some: {} }, chatClosedAt: null } }),
-    prisma.order.count({ where: { messages: { some: {} }, awaitingReplyFrom: "STAFF", chatClosedAt: null } }),
-    prisma.order.count({ where: { messages: { some: {} }, awaitingReplyFrom: "CLIENTE", chatClosedAt: null } }),
-    prisma.order.count({ where: { messages: { some: {} }, chatClosedAt: { not: null } } }),
+    prisma.order.count({ where: { messages: { some: {} }, chatClosedAt: null, status: { not: "CANCELADO" } } }),
+    prisma.order.count({ where: { messages: { some: {} }, awaitingReplyFrom: "STAFF", chatClosedAt: null, status: { not: "CANCELADO" } } }),
+    prisma.order.count({ where: { messages: { some: {} }, awaitingReplyFrom: "CLIENTE", chatClosedAt: null, status: { not: "CANCELADO" } } }),
+    prisma.order.count({ where: { messages: { some: {} }, OR: [{ chatClosedAt: { not: null } }, { status: "CANCELADO" }] } }),
   ]);
   return { conversations, total, page, pageSize, pageCount: Math.max(1, Math.ceil(total / pageSize)), counts: { open, waiting, customer, closed } };
 }

@@ -224,7 +224,7 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
             orderId={order.id}
             mode="customer"
             messages={order.messages}
-            closed={order.chatClosedAt != null}
+            closed={order.chatClosedAt != null || order.status === "CANCELADO"}
           />
         </div>
       </details>

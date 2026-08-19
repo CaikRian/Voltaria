@@ -405,10 +405,11 @@ export async function sendOrderMessageAction(
 
   const order = await prisma.order.findFirst({
     where: { id: orderId, userId: user.id },
-    select: { id: true },
+    select: { id: true, status: true },
   });
 
   if (!order) return { error: "Pedido não encontrado." };
+  if (order.status === "CANCELADO") return { error: "A conversa deste pedido foi encerrada porque ele foi cancelado." };
 
   await prisma.orderMessage.create({
     data: {
@@ -452,10 +453,11 @@ export async function sendOrderReplyAction(
 
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    select: { id: true },
+    select: { id: true, status: true },
   });
 
   if (!order) return { error: "Pedido não encontrado." };
+  if (order.status === "CANCELADO") return { error: "A conversa deste pedido foi encerrada porque ele foi cancelado." };
 
   await prisma.orderMessage.create({
     data: {

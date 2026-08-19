@@ -33,7 +33,7 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
   const lastMessage = order.messages.at(-1);
   const chatState = order.messages.length === 0
     ? { label: "Não iniciado", description: "O cliente ainda não abriu uma conversa.", color: "bg-slate-100 text-slate-700" }
-    : order.chatClosedAt
+    : order.chatClosedAt || order.status === "CANCELADO"
       ? { label: "Encerrado", description: "Atendimento finalizado pela equipe.", color: "bg-slate-100 text-slate-700" }
       : order.awaitingReplyFrom === "STAFF"
         ? { label: "Aguardando equipe", description: "O cliente enviou a última mensagem.", color: "bg-amber-100 text-amber-800" }
@@ -225,7 +225,7 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
           orderId={order.id}
           mode="staff"
           messages={order.messages}
-          closed={order.chatClosedAt != null}
+          closed={order.chatClosedAt != null || order.status === "CANCELADO"}
         />
       </div>
     </div>

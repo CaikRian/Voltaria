@@ -52,8 +52,9 @@ export async function ConversationsInbox({ filters }: { filters: ConversationFil
 
     {!data.conversations.length ? <div className="grid place-items-center rounded-xl2 border border-dashed border-line bg-paper py-16 text-center"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-100 text-xl text-emerald-800">✓</span><p className="mt-3 font-semibold">Nenhuma conversa nesta fila</p><p className="mt-1 text-sm text-ink-muted">Não há atendimentos correspondentes aos filtros atuais.</p></div> : <ul className="grid gap-3">{data.conversations.map((chat) => {
       const last = chat.messages[0];
-      const needsReply = chat.awaitingReplyFrom === "STAFF" && !chat.chatClosedAt;
-      const waitingCustomer = chat.awaitingReplyFrom === "CLIENTE" && !chat.chatClosedAt;
+      const effectivelyClosed = Boolean(chat.chatClosedAt) || chat.status === "CANCELADO";
+      const needsReply = chat.awaitingReplyFrom === "STAFF" && !effectivelyClosed;
+      const waitingCustomer = chat.awaitingReplyFrom === "CLIENTE" && !effectivelyClosed;
       return <li key={chat.id}><Link href={`/painel/pedidos/${chat.id}#chat`} className={`group block overflow-hidden rounded-xl2 border bg-paper shadow-card transition hover:-translate-y-0.5 hover:shadow-pop ${needsReply ? "border-amber-300" : "border-line"}`}>
         <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(210px,.7fr)_auto] lg:items-center">
           <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="font-mono text-xs font-black text-brand">#{chat.id.slice(-8)}</span><OrderStatusBadge status={chat.status} />{needsReply ? <QueueBadge tone="amber">Equipe precisa responder</QueueBadge> : waitingCustomer ? <QueueBadge tone="blue">Aguardando cliente</QueueBadge> : <QueueBadge tone="gray">Conversa encerrada</QueueBadge>}</div><p className="mt-3 truncate text-sm font-bold">{chat.shipName || chat.email.split("@")[0]}</p><p className="truncate text-xs text-ink-muted">{chat.email}</p><div className={`mt-3 rounded-xl px-3 py-2.5 ${needsReply ? "bg-amber-50" : "bg-mist/70"}`}><p className="truncate text-sm text-ink-soft"><strong>{last?.senderRole === "CLIENTE" ? "Cliente:" : "Equipe:"}</strong> {cleanMessage(last?.text)}</p></div></div>
