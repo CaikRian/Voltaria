@@ -30,6 +30,9 @@ export const registerSchema = z
       const date = new Date(`${value}T12:00:00.000Z`);
       return !Number.isNaN(date.getTime()) && date <= new Date();
     }, "A data de nascimento não pode ser futura"),
+    gender: z.enum(["Feminino", "Masculino", "Não binário", "Outro", "Prefiro não informar"], {
+      errorMap: () => ({ message: "Escolha uma opção" }),
+    }),
     referralSource: z.string().trim().min(1, "Escolha uma opção").max(80),
     cep: z.string().regex(/^\d{5}-?\d{3}$/, "CEP inválido").transform((value) => value.replace(/\D/g, "")),
     street: z.string().trim().min(2, "Informe a rua").max(160),

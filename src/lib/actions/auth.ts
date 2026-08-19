@@ -18,6 +18,7 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
     cpf: formData.get("cpf"),
     phone: formData.get("phone"),
     dateOfBirth: formData.get("dateOfBirth"),
+    gender: formData.get("gender"),
     referralSource: formData.get("referralSource"),
     cep: formData.get("cep"),
     street: formData.get("street"),
@@ -54,7 +55,7 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
 
   try {
     await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({ data: { name, cpf, phone, email, passwordHash, role: "CLIENTE", dateOfBirth: new Date(`${parsed.data.dateOfBirth}T12:00:00.000Z`), referralSource: parsed.data.referralSource, allowEmailUpdates, allowWhatsappUpdates, communicationConsentAt: new Date() } });
+      const user = await tx.user.create({ data: { name, cpf, phone, email, passwordHash, role: "CLIENTE", dateOfBirth: new Date(`${parsed.data.dateOfBirth}T12:00:00.000Z`), gender: parsed.data.gender, referralSource: parsed.data.referralSource, allowEmailUpdates, allowWhatsappUpdates, communicationConsentAt: new Date() } });
       await tx.address.create({ data: { userId: user.id, label: "Casa", name, cep: parsed.data.cep, street: parsed.data.street, number: parsed.data.number, complement: parsed.data.complement || null, neighborhood: parsed.data.neighborhood, city: parsed.data.city, state: parsed.data.state, isDefault: true } });
     });
   } catch (error) {
