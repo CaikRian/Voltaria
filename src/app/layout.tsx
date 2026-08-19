@@ -10,6 +10,7 @@ import { NavigationProgress } from "@/components/NavigationProgress";
 import { CookieConsent } from "@/components/CookiePreferences";
 import { Suspense } from "react";
 import { WebAnalyticsTracker } from "@/components/WebAnalyticsTracker";
+import { ChatWidget } from "@/components/chat-widget/ChatWidget";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 const display = Space_Grotesk({
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </main>
           <Footer />
           <CartDrawer />
+          <ChatWidget />
           <CookieConsent />
         </Providers>
       </body>

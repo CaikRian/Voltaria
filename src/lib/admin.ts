@@ -206,12 +206,13 @@ export async function getSellerDashboardSummary() {
 }
 
 export async function getPanelNavigationCounts() {
-  const [questions, chats, refunds] = await Promise.all([
+  const [questions, chats, refunds, chatbot] = await Promise.all([
     prisma.question.count({ where: { answeredAt: null, hidden: false } }),
     prisma.order.count({ where: { awaitingReplyFrom: "STAFF", chatClosedAt: null, status: { not: "CANCELADO" } } }),
     prisma.order.count({ where: { status: "REEMBOLSO_SOLICITADO" } }),
+    prisma.chatSession.count({ where: { awaitingReplyFrom: "STAFF", chatClosedAt: null } }),
   ]);
-  return { questions, chats, refunds };
+  return { questions, chats, refunds, chatbot };
 }
 
 export async function getAdminConversations(opts: {
@@ -268,6 +269,57 @@ export async function getAdminConversations(opts: {
     prisma.order.count({ where: { messages: { some: {} }, OR: [{ chatClosedAt: { not: null } }, { status: "CANCELADO" }] } }),
   ]);
   return { conversations, total, page, pageSize, pageCount: Math.max(1, Math.ceil(total / pageSize)), counts: { open, waiting, customer, closed } };
+}
+
+// --- Chat-bot (widget flutuante) ---
+export async function getAdminChatSessions(opts: {
+  queue?: "waiting" | "open" | "closed" | "all";
+  q?: string;
+  page?: number;
+  pageSize?: number;
+} = {}) {
+  const queue = opts.queue ?? "waiting";
+  const page = Math.max(opts.page ?? 1, 1);
+  const pageSize = Math.min(Math.max(opts.pageSize ?? 10, 5), 30);
+  const queueWhere = queue === "waiting"
+    ? { awaitingReplyFrom: "STAFF", chatClosedAt: null }
+    : queue === "open"
+      ? { chatClosedAt: null }
+      : queue === "closed"
+        ? { chatClosedAt: { not: null } }
+        : {};
+  const where = {
+    AND: [
+      queueWhere,
+      ...(opts.q ? [{ OR: [{ name: { contains: opts.q } }, { email: { contains: opts.q } }, { orderRef: { contains: opts.q } }] }] : []),
+    ],
+  };
+  const [sessions, total, waiting, open, closed] = await Promise.all([
+    prisma.chatSession.findMany({
+      where,
+      select: {
+        id: true, name: true, email: true, reason: true, orderRef: true,
+        awaitingReplyFrom: true, chatClosedAt: true, createdAt: true, updatedAt: true,
+        messages: { orderBy: { createdAt: "desc" }, take: 1, select: { text: true, senderRole: true, createdAt: true } },
+        _count: { select: { messages: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.chatSession.count({ where }),
+    prisma.chatSession.count({ where: { awaitingReplyFrom: "STAFF", chatClosedAt: null } }),
+    prisma.chatSession.count({ where: { chatClosedAt: null } }),
+    prisma.chatSession.count({ where: { chatClosedAt: { not: null } } }),
+  ]);
+  return { sessions, total, page, pageSize, pageCount: Math.max(1, Math.ceil(total / pageSize)), counts: { waiting, open, closed } };
+}
+
+export async function getAdminChatSession(id: string) {
+  return prisma.chatSession.findUnique({
+    where: { id },
+    include: { messages: { orderBy: { createdAt: "asc" } } },
+  });
 }
 
 export async function getAdminOrder(id: string) {

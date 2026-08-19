@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type Kind = "order" | "message" | "question" | "review";
+type Kind = "order" | "message" | "question" | "review" | "chatbot";
 type Toast = { id: string; kind: Kind; title: string; text: string };
 type Activity = { latest: Record<Kind, ({ id: string; product?: string; rating?: number; orderId?: string }) | null>; version: string | null };
 const labels: Record<Kind, { title: string; icon: string }> = {
-  order: { title: "Nova compra recebida!", icon: "✓" }, message: { title: "Cliente respondeu no chat", icon: "✦" }, question: { title: "Nova dúvida sobre produto", icon: "?" }, review: { title: "Nova avaliação publicada", icon: "★" },
+  order: { title: "Nova compra recebida!", icon: "✓" }, message: { title: "Cliente respondeu no chat", icon: "✦" }, question: { title: "Nova dúvida sobre produto", icon: "?" }, review: { title: "Nova avaliação publicada", icon: "★" }, chatbot: { title: "Novo atendimento no chat-bot", icon: "☎" },
 };
 
 export function RealtimePanelSync() {

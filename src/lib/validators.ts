@@ -245,3 +245,26 @@ export const createTeamMemberSchema = z.object({
   role: z.enum(["VENDEDOR", "GERENTE", "ADMIN"]),
   password: z.string().min(8, "A senha deve ter ao menos 8 caracteres").regex(/[A-Za-z]/, "Inclua ao menos uma letra").regex(/[0-9]/, "Inclua ao menos um número"),
 });
+
+// --- Chat-bot (widget flutuante) ---
+export const CHAT_REASONS = [
+  "Dúvida sobre produto",
+  "Pedido e entrega",
+  "Pagamento",
+  "Troca ou devolução",
+  "Reclamação",
+  "Outro",
+] as const;
+
+export const chatEscalationSchema = z.object({
+  visitorId: z.string().min(10).max(80),
+  name: z.string().trim().max(120).optional().or(z.literal("")),
+  email: z.string().trim().toLowerCase().email("E-mail inválido"),
+  reason: z.enum(CHAT_REASONS, { errorMap: () => ({ message: "Escolha um motivo" }) }),
+  orderRef: z.string().trim().max(40).optional().or(z.literal("")),
+  message: z.string().trim().min(5, "Conte um pouco mais (mín. 5 caracteres)").max(1000, "Mensagem muito longa (máx. 1000 caracteres)"),
+});
+
+export const chatMessageSchema = z.object({
+  text: z.string().trim().min(1, "Escreva uma mensagem").max(1000, "Mensagem muito longa (máx. 1000 caracteres)"),
+});

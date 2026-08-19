@@ -105,6 +105,7 @@ model User {
   sessions     Session[]
   orderMessages OrderMessage[]
   passwordResetTokens PasswordResetToken[]
+  chatSessions  ChatSession[]
 }
 
 model PasswordResetToken {
@@ -316,6 +317,42 @@ model OrderMessage {
 
   @@index([orderId])
   @@index([userId])
+}
+
+// Chat do widget flutuante da loja — pré-venda/institucional, sem Order associado
+// (diferente de OrderMessage, que só existe depois de um pedido). Anônimo por padrão
+// (visitorId do localStorage, mesma técnica do WebsiteVisit); linka userId quando a
+// pessoa está logada. Só existe a partir do momento em que a pessoa pede pra falar
+// com um atendente — a conversa com o bot em si não é gravada (roda só no client).
+model ChatSession {
+  id                String    @id @default(cuid())
+  visitorId         String // id anônimo gerado no client (localStorage)
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId            String?
+  name              String?
+  email             String
+  reason            String // motivo escolhido no miniform (texto livre, como Order.status)
+  orderRef          String? // nº de pedido informado pela pessoa; não é FK
+  awaitingReplyFrom String? // STAFF | VISITANTE
+  chatWaitingSince  DateTime?
+  chatClosedAt      DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  messages          ChatMessage[]
+
+  @@index([visitorId])
+  @@index([awaitingReplyFrom])
+}
+
+model ChatMessage {
+  id         String      @id @default(cuid())
+  session    ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId  String
+  senderRole String // VISITANTE | VENDEDOR | GERENTE | ADMIN
+  text       String
+  createdAt  DateTime    @default(now())
+
+  @@index([sessionId])
 }
 
 model Review {
