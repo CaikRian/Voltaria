@@ -12,6 +12,7 @@ import { mpClient } from "@/lib/mercadopago";
 import { updateOrderStatus } from "@/lib/orders";
 import { isValidStatusTransition, type OrderStatus } from "@/lib/order-status";
 import { checkoutSchema, orderStatusSchema, type CheckoutInput } from "@/lib/validators";
+import { InsufficientStockError, reserveStock } from "@/lib/inventory";
 
 export type CheckoutFormState = {
   error?: string;
@@ -39,6 +40,7 @@ export async function createOrderAction(
     productId: string;
     productName: string;
     variantName?: string;
+    variantId?: string;
     unitCents: number;
     qty: number;
   }[] = [];
@@ -49,15 +51,18 @@ export async function createOrderAction(
 
     let unitCents = product.priceCents;
     let stockAvailable = product.stock;
+    let variantId: string | undefined;
 
     if (it.variantName) {
       const variant = product.variants.find((v) => v.name === it.variantName);
       if (!variant) return { error: `Variação indisponível: ${it.variantName}.` };
       unitCents = variant.priceCents ?? product.priceCents;
       stockAvailable = variant.stock;
+      variantId = variant.id;
     }
 
-    // Checagem leve de estoque — não reserva/decrementa (ver CLAUDE.md / plano do item 1).
+    // Mensagem antecipada para UX; a garantia contra concorrência acontece na
+    // transação abaixo com UPDATE condicional.
     if (it.qty > stockAvailable) {
       return { error: `Estoque insuficiente para "${product.name}".` };
     }
@@ -66,6 +71,7 @@ export async function createOrderAction(
       productId: product.id,
       productName: product.name,
       variantName: it.variantName,
+      variantId,
       unitCents,
       qty: it.qty,
     });
@@ -88,12 +94,19 @@ export async function createOrderAction(
   // pode apontar pra usuário inexistente e quebrar a FK de Order.userId.
   const user = await getCurrentUser(); // pode ser null — checkout de convidado é permitido
   const orderUserId = user?.id ?? null;
-  const order = await prisma.order.create({
-    data: {
+  let order;
+  try {
+    order = await prisma.$transaction(async (tx) => {
+      await reserveStock(tx, orderItemsData);
+      return tx.order.create({
+        data: {
       email: d.email,
       totalCents,
       userId: orderUserId,
       status: "AGUARDANDO_PAGAMENTO", // novo status inicial
+      stockReservationStatus: "RESERVED",
+      stockReservedAt: new Date(),
+      stockReservationExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
       items: { create: orderItemsData },
       statusEvents: { create: [{ status: "AGUARDANDO_PAGAMENTO" }] },
       // Snapshot do endereço de entrega — igual OrderItem.productName já é
@@ -108,8 +121,14 @@ export async function createOrderAction(
       shipState: d.state,
       shippingCents,
       shippingMethod: `${resolved.option.label} — ${resolved.option.etaLabel}`,
-    },
-  });
+        },
+      });
+    });
+  } catch (error) {
+    if (error instanceof InsufficientStockError) return { error: error.message };
+    console.error("Falha ao reservar estoque e criar pedido:", error);
+    return { error: "Não foi possível reservar os produtos. Tente novamente." };
+  }
 
   // Salva o endereço como favorito (best-effort). Fora do try/catch da Preference
   // de propósito — uma falha aqui NUNCA deve derrubar o pedido nem acionar o
@@ -533,6 +552,23 @@ export async function retryPaymentAction(orderId: string): Promise<CheckoutFormS
   // Segurança: se for um pedido de um usuário logado, verifica se é o dono
   if (user && order.userId !== user.id) {
     return { error: "Você não tem permissão para pagar este pedido." };
+  }
+
+  const reservationExtended = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${order.id} FOR UPDATE`;
+    const fresh = await tx.order.findUniqueOrThrow({ where: { id: order.id } });
+    if (
+      !["AGUARDANDO_PAGAMENTO", "PAGAMENTO_RECUSADO"].includes(fresh.status) ||
+      fresh.stockReservationStatus !== "RESERVED"
+    ) return false;
+    await tx.order.update({
+      where: { id: order.id },
+      data: { stockReservationExpiresAt: new Date(Date.now() + 30 * 60 * 1000), abandonedAt: null },
+    });
+    return true;
+  });
+  if (!reservationExtended) {
+    return { error: "A reserva deste pedido expirou. Faça um novo pedido para verificar o estoque atual." };
   }
 
   const preferenceClient = new Preference(mpClient);

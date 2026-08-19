@@ -229,6 +229,13 @@ model Order {
   // Orders AGUARDANDO_PAGAMENTO > 30 min podem ser auto-canceladas
   abandonedAt DateTime? // marca quando o pedido foi identificado como abandonado
 
+  // Estoque disponível é debitado ao criar o pedido. A reserva vira consumo
+  // definitivo na aprovação ou é devolvida ao cancelar/expirar.
+  stockReservationStatus    String    @default("NONE") // NONE | RESERVED | CONSUMED | RELEASED
+  stockReservedAt           DateTime?
+  stockReservationExpiresAt DateTime?
+  stockReleasedAt           DateTime?
+
   // --- Mercado Pago (Checkout Pro) ---
   mpPreferenceId  String? @unique // Preference criada ao iniciar o checkout
   mpPaymentId     String? @unique // setado pelo webhook quando a MP confirma o pagamento
@@ -276,6 +283,7 @@ model Order {
   @@index([status])
   @@index([userId])
   @@index([abandonedAt])
+  @@index([stockReservationStatus, stockReservationExpiresAt])
 }
 
 model OrderItem {
@@ -285,6 +293,7 @@ model OrderItem {
   productId   String
   productName String // snapshot: nome no momento da compra
   variantName String?
+  variantId   String? // snapshot técnico para movimentar o estoque sem depender do nome
   unitCents   Int // preço unitário no momento da compra
   qty         Int
 

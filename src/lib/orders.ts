@@ -3,6 +3,7 @@ import { Payment } from "mercadopago";
 import { prisma } from "@/lib/prisma";
 import { mpClient } from "@/lib/mercadopago";
 import { mapMercadoPagoStatusToOrderStatus } from "@/lib/order-status";
+import { releaseStock, reserveStock } from "@/lib/inventory";
 
 // Camada de leitura de pedidos — usada pelas páginas de retorno do checkout,
 // pelo webhook da Mercado Pago e pela área do cliente (/conta/pedidos).
@@ -84,19 +85,35 @@ export async function updateOrderStatus(
   opts?: { note?: string; orderData?: Prisma.OrderUpdateManyMutationInput }
 ) {
   return prisma.$transaction(async (tx) => {
-    // O update condicional é atômico: se webhook e página de retorno tentarem
-    // aplicar o mesmo status juntos, apenas uma chamada altera a linha e cria
-    // o evento. A outra só atualiza os metadados idempotentes do pagamento.
-    const statusChange = await tx.order.updateMany({
-      where: { id: orderId, status: { not: newStatus } },
-      data: { status: newStatus, ...opts?.orderData },
+    await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${orderId} FOR UPDATE`;
+    const current = await tx.order.findUniqueOrThrow({
+      where: { id: orderId },
+      include: { items: true },
     });
+    const changed = current.status !== newStatus;
+    const reservationData: Prisma.OrderUpdateInput = {};
 
-    if (statusChange.count === 0 && opts?.orderData) {
-      await tx.order.update({ where: { id: orderId }, data: opts.orderData });
+    if (changed && newStatus === "PAGAMENTO_APROVADO" && current.stockReservationStatus !== "CONSUMED") {
+      if (current.stockReservationStatus !== "RESERVED") {
+        await reserveStock(tx, current.items);
+      }
+      reservationData.stockReservationStatus = "CONSUMED";
+      reservationData.stockReservationExpiresAt = null;
     }
 
-    if (statusChange.count === 1) {
+    if (changed && newStatus === "CANCELADO" && current.stockReservationStatus === "RESERVED") {
+      await releaseStock(tx, current.items);
+      reservationData.stockReservationStatus = "RELEASED";
+      reservationData.stockReleasedAt = new Date();
+      reservationData.stockReservationExpiresAt = null;
+    }
+
+    await tx.order.update({
+      where: { id: orderId },
+      data: { ...(changed ? { status: newStatus } : {}), ...opts?.orderData, ...reservationData },
+    });
+
+    if (changed) {
       await tx.orderStatusEvent.create({
         data: { orderId, status: newStatus, note: opts?.note },
       });

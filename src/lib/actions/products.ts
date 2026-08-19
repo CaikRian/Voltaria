@@ -209,6 +209,20 @@ export async function updateProduct(
   addChange(changes, "featured", "Destaque", existing.featured ? "Sim" : "Não", d.featured ? "Sim" : "Não");
   addChange(changes, "variants", "Variações", variantSummary(existing.variants), variantSummary(nextVariants));
 
+  const inventoryChanged = existing.stock !== d.stock ||
+    variantSummary(existing.variants) !== variantSummary(nextVariants);
+  if (inventoryChanged) {
+    const reservedOrders = await prisma.order.count({
+      where: {
+        stockReservationStatus: "RESERVED",
+        items: { some: { productId: id } },
+      },
+    });
+    if (reservedOrders > 0) {
+      return { error: "Há pedidos com estoque reservado para este produto. Aguarde o pagamento ou cancelamento antes de alterar estoque e variações." };
+    }
+  }
+
   try {
     // Substitui as variações (apaga e recria) — abordagem simples e confiável.
     await prisma.$transaction([
@@ -258,6 +272,12 @@ export async function updateProduct(
 // --- Excluir ---
 export async function deleteProduct(id: string) {
   await requireCapability("product:delete");
+  const reservedOrders = await prisma.order.count({
+    where: { stockReservationStatus: "RESERVED", items: { some: { productId: id } } },
+  });
+  if (reservedOrders > 0) {
+    throw new Error("Não é possível excluir um produto com estoque reservado em pedidos pendentes.");
+  }
   await prisma.product.delete({ where: { id } }); // variações caem em cascata
   revalidatePath("/painel/produtos");
   revalidatePath("/produtos");

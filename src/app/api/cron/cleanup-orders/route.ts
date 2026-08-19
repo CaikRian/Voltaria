@@ -7,7 +7,7 @@
  * {
  *   "crons": [{
  *     "path": "/api/cron/cleanup-orders",
- *     "schedule": "0 2 * * *"  // 2 AM UTC todo dia
+ *     "schedule": "0,10,20,30,40,50 * * * *"  // a cada dez minutos
  *   }]
  * }
  * 
@@ -26,10 +26,12 @@ export async function GET(req: NextRequest) {
   const origin = req.headers.get("origin");
   const isLocalhost = origin?.includes("localhost") || origin?.includes("127.0.0.1");
 
-  // Verificar token se em produção
+  // Vercel Cron envia o segredo no header Authorization. O query param continua
+  // aceito para chamadas manuais e outros provedores de cron.
   if (!isLocalhost && CRON_SECRET) {
     const token = req.nextUrl.searchParams.get("token");
-    if (token !== CRON_SECRET) {
+    const bearer = req.headers.get("authorization");
+    if (token !== CRON_SECRET && bearer !== `Bearer ${CRON_SECRET}`) {
       console.warn("[Cron] Tentativa de acesso não autorizada");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -45,7 +47,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: `Cleanup concluído: ${abandonedCount} pedidos marcados como abandonados, ${closedChatsCount} chats fechados por inatividade`,
+        message: `Cleanup concluído: ${abandonedCount} reservas expiradas e liberadas, ${closedChatsCount} chats fechados por inatividade`,
         abandonedCount,
         closedChatsCount,
         timestamp: new Date().toISOString(),
