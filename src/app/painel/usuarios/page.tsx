@@ -4,6 +4,8 @@ import { getAdminUsers } from "@/lib/admin";
 import { updateUserRoleAction } from "@/lib/actions/users";
 import { ROLE_LABELS, type Role } from "@/lib/permissions";
 import { RoleForm } from "./RoleForm";
+import { CreateTeamMemberForm } from "./CreateTeamMemberForm";
+import { DeleteTeamMemberButton } from "./DeleteTeamMemberButton";
 
 export const metadata: Metadata = { title: "Usuários · Painel" };
 
@@ -15,9 +17,13 @@ export default async function PainelUsuariosPage({ searchParams }: { searchParam
   const users = await getAdminUsers(q);
 
   return (
-    <div>
-      <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="font-display text-xl font-semibold">Usuários</h2>
+    <div className="space-y-6">
+      <section className="relative overflow-hidden rounded-xl2 bg-gradient-to-br from-slate-900 via-brand-dark to-brand p-6 text-white shadow-pop"><div className="absolute -right-12 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" /><div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-white/60">Acessos e permissões</p><h2 className="mt-1 font-display text-3xl font-semibold">Equipe Voltaria</h2><p className="mt-2 text-sm text-white/70">Crie acessos, defina responsabilidades e mantenha o controle da operação.</p></div><div className="rounded-xl bg-white/10 px-4 py-3 text-center"><p className="font-display text-2xl font-bold">{users.length}</p><p className="text-xs text-white/65">resultado(s)</p></div></div></section>
+
+      {actingUser.role === "ADMIN" && <CreateTeamMemberForm />}
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div><h3 className="font-display text-xl font-semibold">Pessoas e papéis</h3><p className="text-sm text-ink-muted">Gerencie quem pode acessar cada área do painel.</p></div>
         <form className="relative w-full max-w-xs">
           <input
             name="q"
@@ -28,7 +34,7 @@ export default async function PainelUsuariosPage({ searchParams }: { searchParam
         </form>
       </div>
       {!q && (
-        <p className="mb-5 text-sm text-ink-muted">
+        <p className="-mt-4 rounded-xl border border-line bg-mist p-3 text-sm text-ink-muted">
           Mostrando apenas a equipe (Vendedor/Gerente/Admin). Busque por nome ou e-mail
           pra encontrar e promover um cliente.
         </p>
@@ -39,16 +45,17 @@ export default async function PainelUsuariosPage({ searchParams }: { searchParam
           <p className="text-sm text-ink-muted">Nenhum usuário encontrado.</p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="grid gap-3 xl:grid-cols-2">
           {users.map((u) => {
             const isSelf = u.id === actingUser.id;
             const isLockedAdminTier = u.role === "ADMIN" && actingUser.role !== "ADMIN";
             return (
-              <li key={u.id} className="rounded-xl2 border border-line bg-paper p-4">
+              <li key={u.id} className="rounded-xl2 border border-line bg-paper p-5 shadow-card transition hover:border-brand/30">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium">{u.name ?? "Sem nome"}</p>
+                    <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-soft font-display font-bold text-brand">{(u.name ?? u.email).charAt(0).toUpperCase()}</span><div><p className="font-medium">{u.name ?? "Sem nome"}</p>
                     <p className="text-sm text-ink-muted">{u.email}</p>
+                    <p className="mt-1 text-[10px] uppercase tracking-wide text-ink-muted">Desde {new Date(u.createdAt).toLocaleDateString("pt-BR")}</p></div></div>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <span className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium">
@@ -61,12 +68,13 @@ export default async function PainelUsuariosPage({ searchParams }: { searchParam
                   </div>
                 </div>
                 {!isSelf && !isLockedAdminTier && (
-                  <div className="mt-3">
+                  <div className="mt-4 border-t border-line pt-4">
                     <RoleForm
                       action={updateUserRoleAction.bind(null, u.id)}
                       currentRole={u.role}
                       actingRole={actingUser.role}
                     />
+                    {actingUser.role === "ADMIN" && u.role !== "CLIENTE" && <DeleteTeamMemberButton id={u.id} name={u.name ?? u.email} />}
                   </div>
                 )}
               </li>

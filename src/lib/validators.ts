@@ -193,3 +193,10 @@ export const USER_ROLES = ["CLIENTE", "VENDEDOR", "GERENTE", "ADMIN"] as const;
 export const userRoleSchema = z.object({
   role: z.enum(USER_ROLES),
 });
+
+export const createTeamMemberSchema = z.object({
+  name: z.string().trim().min(2, "Informe o nome").max(120, "Nome muito longo"),
+  email: z.string().trim().toLowerCase().email("E-mail inválido"),
+  role: z.enum(["VENDEDOR", "GERENTE", "ADMIN"]),
+  password: z.string().min(8, "A senha deve ter ao menos 8 caracteres").regex(/[A-Za-z]/, "Inclua ao menos uma letra").regex(/[0-9]/, "Inclua ao menos um número"),
+});
