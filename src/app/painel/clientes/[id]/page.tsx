@@ -6,6 +6,7 @@ import { requireCapability } from "@/lib/auth-helpers";
 import { formatBRL, formatPhone, whatsappLink } from "@/lib/format";
 import { OrderStatusBadge } from "@/components/OrderStatusBadge";
 import { StarRating } from "@/components/StarRating";
+import { PaginatedList } from "../PaginatedList";
 
 export const metadata: Metadata = { title: "Cliente · Painel" };
 
@@ -34,10 +35,17 @@ export default async function PainelClientePage({ params }: { params: Params }) 
   const customer = await getAdminCustomer(id);
   if (!customer) notFound();
 
-  const allMessages = customer.orders
-    .flatMap((order) => order.messages.map((message) => ({ ...message, orderId: order.id })))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 15);
+  // Uma conversa = um pedido com mensagens (não a lista de mensagens achatada) —
+  // separar por chat deixa claro qual atendimento é qual, em vez de misturar
+  // pedidos diferentes numa única linha do tempo.
+  const conversations = customer.orders
+    .filter((order) => order.messages.length > 0)
+    .map((order) => ({
+      order,
+      last: order.messages[order.messages.length - 1],
+      needsReply: order.awaitingReplyFrom === "STAFF" && !order.chatClosedAt,
+    }))
+    .sort((a, b) => new Date(b.last.createdAt).getTime() - new Date(a.last.createdAt).getTime());
 
   const initial = (customer.name ?? customer.email).trim().charAt(0).toUpperCase();
 
@@ -73,8 +81,10 @@ export default async function PainelClientePage({ params }: { params: Params }) 
             {customer.orders.length === 0 ? (
               <Empty text="Este cliente ainda não fez nenhum pedido." />
             ) : (
-              <ul className="divide-y divide-line">
-                {customer.orders.map((order) => (
+              <PaginatedList
+                pageSize={5}
+                listClassName="divide-y divide-line"
+                items={customer.orders.map((order) => (
                   <li key={order.id}>
                     <Link href={`/painel/pedidos/${order.id}`} className="flex flex-wrap items-center justify-between gap-3 py-3 transition hover:opacity-80">
                       <div>
@@ -88,29 +98,37 @@ export default async function PainelClientePage({ params }: { params: Params }) 
                     </Link>
                   </li>
                 ))}
-              </ul>
+              />
             )}
           </Card>
 
           <Card title="Conversas">
-            {allMessages.length === 0 ? (
-              <Empty text="Nenhuma mensagem trocada com este cliente ainda." />
+            {conversations.length === 0 ? (
+              <Empty text="Nenhuma conversa iniciada com este cliente ainda." />
             ) : (
-              <ul className="flex flex-col gap-3">
-                {allMessages.map((message) => (
-                  <li key={message.id} className="rounded-xl bg-mist p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className={`text-xs font-bold ${message.senderRole === "CLIENTE" ? "text-brand" : "text-ink"}`}>
-                        {message.senderRole === "CLIENTE" ? "Cliente" : "Equipe"}
-                      </span>
-                      <Link href={`/painel/pedidos/${message.orderId}#chat`} className="text-[11px] font-medium text-ink-muted hover:text-brand">
-                        Pedido #{message.orderId.slice(-8)} · {dateTime(message.createdAt)}
-                      </Link>
-                    </div>
-                    <p className="mt-1 text-sm text-ink-soft">{message.text}</p>
+              <PaginatedList
+                pageSize={5}
+                items={conversations.map(({ order, last, needsReply }) => (
+                  <li key={order.id}>
+                    <Link
+                      href={`/painel/pedidos/${order.id}#chat`}
+                      className={`block rounded-xl border bg-mist p-3 transition hover:border-brand ${needsReply ? "border-amber-300" : "border-transparent"}`}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs font-bold">Pedido #{order.id.slice(-8)}</span>
+                        <span className="text-[11px] text-ink-muted">· {order.messages.length} mensagem(ns)</span>
+                        {needsReply && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Responder agora</span>}
+                        {order.chatClosedAt && <span className="rounded-full bg-line px-2 py-0.5 text-[10px] font-semibold text-ink-muted">Encerrada</span>}
+                      </div>
+                      <p className="mt-1 truncate text-sm text-ink-soft">
+                        <span className="font-medium text-ink">{last.senderRole === "CLIENTE" ? "Cliente: " : "Equipe: "}</span>
+                        {last.text}
+                      </p>
+                      <p className="mt-1 text-[11px] text-ink-muted">{dateTime(last.createdAt)}</p>
+                    </Link>
                   </li>
                 ))}
-              </ul>
+              />
             )}
           </Card>
 
@@ -118,8 +136,9 @@ export default async function PainelClientePage({ params }: { params: Params }) 
             {customer.reviews.length === 0 ? (
               <Empty text="Este cliente ainda não avaliou nenhum produto." />
             ) : (
-              <ul className="flex flex-col gap-3">
-                {customer.reviews.map((review) => (
+              <PaginatedList
+                pageSize={5}
+                items={customer.reviews.map((review) => (
                   <li key={review.id} className="rounded-xl bg-mist p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <Link href={`/produtos/${review.product.slug}`} className="text-sm font-medium text-brand hover:underline">{review.product.name}</Link>
@@ -129,7 +148,7 @@ export default async function PainelClientePage({ params }: { params: Params }) 
                     {review.comment && <p className="mt-1 text-sm text-ink-soft">{review.comment}</p>}
                   </li>
                 ))}
-              </ul>
+              />
             )}
           </Card>
 
@@ -137,8 +156,9 @@ export default async function PainelClientePage({ params }: { params: Params }) 
             {customer.questions.length === 0 ? (
               <Empty text="Este cliente ainda não fez nenhuma pergunta." />
             ) : (
-              <ul className="flex flex-col gap-3">
-                {customer.questions.map((question) => (
+              <PaginatedList
+                pageSize={5}
+                items={customer.questions.map((question) => (
                   <li key={question.id} className="rounded-xl bg-mist p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <Link href={`/produtos/${question.product.slug}`} className="text-sm font-medium text-brand hover:underline">{question.product.name}</Link>
@@ -148,7 +168,7 @@ export default async function PainelClientePage({ params }: { params: Params }) 
                     {question.answer && <p className="mt-1 text-sm text-ink-soft">↳ {question.answer}</p>}
                   </li>
                 ))}
-              </ul>
+              />
             )}
           </Card>
         </div>
