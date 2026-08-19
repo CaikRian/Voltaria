@@ -108,6 +108,7 @@ model User {
   accounts     Account[] // logins sociais vinculados
   sessions     Session[]
   orderMessages OrderMessage[]
+  returnRequests ReturnRequest[]
   passwordResetTokens PasswordResetToken[]
   chatSessions  ChatSession[]
 }
@@ -220,6 +221,7 @@ model Order {
   items        OrderItem[]
   statusEvents OrderStatusEvent[]
   messages     OrderMessage[]
+  returnRequests ReturnRequest[]
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
@@ -265,6 +267,7 @@ model Order {
   shippingProvider  String?
   shippingServiceId String?
   melhorEnvioOrderId String? @unique
+  refundedCents Int @default(0)
 
   // --- Rastreamento de envio ---
   // Sem integração com API de transportadora — o vendedor cola o código/link que
@@ -313,8 +316,82 @@ model OrderItem {
   variantId   String? // snapshot técnico para movimentar o estoque sem depender do nome
   unitCents   Int // preço unitário no momento da compra
   qty         Int
+  returnItems ReturnItem[]
 
   @@index([orderId])
+}
+
+// Devoluções possuem ciclo de vida próprio: uma devolução parcial não altera o
+// estado logístico do pedido inteiro. Valores continuam sempre em centavos.
+model ReturnRequest {
+  id                  String        @id @default(cuid())
+  order               Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId             String
+  user                User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  userId              String
+  status              String        @default("REQUESTED") // REQUESTED | APPROVED | REJECTED | AWAITING_SHIPMENT | IN_TRANSIT | RECEIVED | INSPECTED | REFUND_PROCESSING | REFUNDED | REFUND_FAILED | CANCELLED
+  reasonCategory      String
+  reasonDetails       String
+  evidenceUrls        String?       // JSON string de URLs públicas
+  customerNote        String?
+  staffNote           String?
+  rejectionReason     String?
+  reverseInstructions String?
+  reverseTrackingCode String?
+  reverseTrackingUrl  String?
+  reverseLabelUrl     String?
+  requestedCents      Int
+  approvedCents       Int?
+  includeShipping     Boolean       @default(false)
+  mpRefundId          String?       @unique
+  idempotencyKey      String        @unique
+  refundError         String?
+  reviewedById        String?
+  reviewedByName      String?
+  requestedAt         DateTime      @default(now())
+  reviewedAt          DateTime?
+  shippedAt           DateTime?
+  receivedAt          DateTime?
+  inspectedAt         DateTime?
+  refundedAt          DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  items               ReturnItem[]
+  events              ReturnEvent[]
+
+  @@index([orderId, createdAt])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+model ReturnItem {
+  id              String        @id @default(cuid())
+  returnRequest   ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  returnRequestId String
+  orderItem       OrderItem     @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+  orderItemId     String
+  qty             Int
+  unitCents       Int
+  condition       String?       // SEALED | SELLABLE | DAMAGED | INCOMPLETE | MISSING
+  restockDecision String        @default("PENDING") // PENDING | RESTOCK | DO_NOT_RESTOCK
+  restockedAt     DateTime?
+
+  @@unique([returnRequestId, orderItemId])
+  @@index([orderItemId])
+}
+
+model ReturnEvent {
+  id              String        @id @default(cuid())
+  returnRequest   ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  returnRequestId String
+  status          String
+  note            String?
+  actorId         String?
+  actorName       String?
+  actorRole       String?
+  createdAt       DateTime      @default(now())
+
+  @@index([returnRequestId, createdAt])
 }
 
 // Linha do tempo do pedido — um snapshot por mudança de status. Alimentado pela

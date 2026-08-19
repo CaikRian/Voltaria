@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { cancelOrderAction, requestRefundAction, retryPaymentAction } from "@/lib/actions/orders";
+import { cancelOrderAction, retryPaymentAction } from "@/lib/actions/orders";
 import { getClientActions, ORDER_STATUS } from "@/lib/order-status";
 import { Button } from "@/components/ui/Button";
 
@@ -28,7 +28,8 @@ export function OrderClientActions({
   const [loading, setLoading] = useState(false);
   const [state, setState] = useState<ClientOrderActionState>({});
 
-  const actions = getClientActions(status as any);
+  // Devoluções usam o módulo dedicado (itens, inspeção, rastreio e auditoria).
+  const actions = getClientActions(status as any).filter((action) => action.id !== "requestRefund");
 
   if (actions.length === 0) return null;
 
@@ -37,16 +38,6 @@ export function OrderClientActions({
     setLoading(true);
     const formData = new FormData(e.currentTarget);
     const result = await cancelOrderAction(orderId, {}, formData);
-    setState(result);
-    setLoading(false);
-    if (result.success) setShowModal(null);
-  };
-
-  const handleRequestRefund = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    const formData = new FormData(e.currentTarget);
-    const result = await requestRefundAction(orderId, {}, formData);
     setState(result);
     setLoading(false);
     if (result.success) setShowModal(null);
@@ -102,43 +93,6 @@ export function OrderClientActions({
             <div className="flex gap-2">
               <Button type="submit" disabled={loading} className="flex-1">
                 {loading ? "Cancelando..." : "Cancelar pedido"}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setShowModal(null)}
-                className="flex-1"
-              >
-                Voltar
-              </Button>
-            </div>
-          </form>
-        </Modal>
-      )}
-
-      {/* Modal para reembolso */}
-      {showModal === "requestRefund" && (
-        <Modal title="Solicitar reembolso" onClose={() => setShowModal(null)}>
-          <form onSubmit={handleRequestRefund} className="flex flex-col gap-3">
-            <p className="text-sm text-gray-600">Por que deseja devolver este pedido?</p>
-            <textarea
-              name="reason"
-              placeholder="Motivo do reembolso"
-              className="rounded border border-gray-300 p-2 text-sm"
-              rows={3}
-            />
-            {state.fieldErrors?.reason && (
-              <p className="text-xs text-red-600">{state.fieldErrors.reason[0]}</p>
-            )}
-            {state.error && <p className="text-xs text-red-600">{state.error}</p>}
-            {state.success && (
-              <p className="text-xs text-green-600">
-                Reembolso solicitado! Você será contatado em breve.
-              </p>
-            )}
-            <div className="flex gap-2">
-              <Button type="submit" disabled={loading} className="flex-1">
-                {loading ? "Enviando..." : "Solicitar reembolso"}
               </Button>
               <Button
                 type="button"

@@ -154,9 +154,10 @@ export function mapMercadoPagoStatusToOrderStatus(mpStatus: string): OrderStatus
     case "rejected":
       return ORDER_STATUS.PAGAMENTO_RECUSADO;
     case "cancelled":
-    case "refunded":
     case "charged_back":
       return ORDER_STATUS.CANCELADO;
+    case "refunded":
+      return ORDER_STATUS.REEMBOLSADO;
     default:
       return ORDER_STATUS.AGUARDANDO_PAGAMENTO;
   }

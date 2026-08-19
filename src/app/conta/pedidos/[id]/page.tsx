@@ -9,6 +9,7 @@ import { MP_PAYMENT_METHOD_LABELS } from "@/lib/mercadopago";
 import { OrderStatusBadge } from "@/components/OrderStatusBadge";
 import { STATUS_META } from "@/lib/order-status";
 import { OrderClientActions } from "../OrderClientActions";
+import { CustomerReturnFlow } from "@/components/ReturnFlow";
 import { OrderAddressEditor } from "../OrderAddressEditor";
 import { OrderMessageThread } from "@/components/OrderMessageThread";
 import { getOrderTrackingHint } from "@/lib/orders";
@@ -203,6 +204,10 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
             </div>
           ) : null}
         </aside>
+      </div>
+
+      <div className="mt-6">
+        <CustomerReturnFlow orderId={order.id} orderStatus={order.status} items={order.items} requests={order.returnRequests} />
       </div>
 
       <details className="group mt-6 overflow-hidden rounded-xl2 border border-line bg-paper shadow-card">

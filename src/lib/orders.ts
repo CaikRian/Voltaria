@@ -46,6 +46,10 @@ export async function getOrderForUser(id: string, userId: string) {
         orderBy: { createdAt: "asc" },
         include: { user: { select: { name: true, email: true } } },
       },
+      returnRequests: {
+        include: { items: { include: { orderItem: true } }, events: { orderBy: { createdAt: "asc" } } },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 }
@@ -146,6 +150,7 @@ export async function reconcilePaymentStatus(paymentId: string) {
       mpPaymentId: String(payment.id),
       mpPaymentMethod: payment.payment_type_id ?? null,
       mpStatusDetail: payment.status_detail ?? null,
+      ...(payment.status === "refunded" ? { refundedCents: order.totalCents } : {}),
     },
   });
 

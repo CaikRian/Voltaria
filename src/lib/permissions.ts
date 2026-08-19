@@ -13,6 +13,8 @@ export type Capability =
   | "order:read:own"
   | "order:read:all"
   | "order:update:status"
+  | "return:manage"
+  | "refund:execute"
   | "review:write" // avaliar produto comprado
   | "question:ask"
   | "question:answer"
@@ -29,6 +31,7 @@ const MATRIX: Record<Role, Capability[]> = {
     "product:update",
     "order:read:all",
     "order:update:status",
+    "return:manage",
     "question:answer",
     "customer:view",
   ],
@@ -40,6 +43,8 @@ const MATRIX: Record<Role, Capability[]> = {
     "product:delete",
     "order:read:all",
     "order:update:status",
+    "return:manage",
+    "refund:execute",
     "question:answer",
     "content:moderate",
     "customer:view",
@@ -53,6 +58,8 @@ const MATRIX: Record<Role, Capability[]> = {
     "product:delete",
     "order:read:all",
     "order:update:status",
+    "return:manage",
+    "refund:execute",
     "question:answer",
     "content:moderate",
     "customer:view",

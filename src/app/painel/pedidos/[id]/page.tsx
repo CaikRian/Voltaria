@@ -11,6 +11,7 @@ import { MP_PAYMENT_METHOD_LABELS } from "@/lib/mercadopago";
 import { OrderStatusBadge } from "@/components/OrderStatusBadge";
 import { StatusUpdateForm } from "../StatusUpdateForm";
 import { OrderMessageThread } from "@/components/OrderMessageThread";
+import { StaffReturnFlow } from "@/components/ReturnFlow";
 
 export const metadata: Metadata = { title: "Pedido · Painel" };
 
@@ -224,6 +225,8 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
           )}
         </aside>
       </div>
+
+      {canUpdateStatus && <StaffReturnFlow requests={order.returnRequests} canRefund={can(user?.role, "refund:execute")} />}
 
       <div id="chat" className="scroll-mt-28">
         <OrderMessageThread

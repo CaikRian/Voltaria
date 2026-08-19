@@ -349,6 +349,10 @@ export async function getAdminOrder(id: string) {
         orderBy: { createdAt: "asc" },
         include: { user: { select: { name: true, email: true } } },
       },
+      returnRequests: {
+        include: { items: { include: { orderItem: true } }, events: { orderBy: { createdAt: "asc" } } },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 }
