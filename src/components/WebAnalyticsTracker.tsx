@@ -25,7 +25,9 @@ export function WebAnalyticsTracker() {
   }, []);
 
   useEffect(() => {
+    let heartbeat: ReturnType<typeof setInterval> | undefined;
     function finish() {
+      if (heartbeat) clearInterval(heartbeat);
       if (!active.current) return;
       const payload = JSON.stringify({ type: "end", id: active.current.id, durationMs: Date.now() - active.current.startedAt });
       navigator.sendBeacon?.("/api/analytics/visit", new Blob([payload], { type: "text/plain" }));
@@ -36,6 +38,10 @@ export function WebAnalyticsTracker() {
     const visit = { id: crypto.randomUUID(), startedAt: Date.now() };
     active.current = visit;
     void fetch("/api/analytics/visit", { method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true, body: JSON.stringify({ type: "start", id: visit.id, visitorId: identifier(localStorage, VISITOR_KEY), sessionId: identifier(sessionStorage, SESSION_KEY), path: pathname, referrerHost: referrerHost(), utmSource: searchParams.get("utm_source")?.slice(0, 80) ?? "", device: device(), browser: browser() }) });
+    heartbeat = setInterval(() => {
+      if (!active.current || document.visibilityState === "hidden") return;
+      void fetch("/api/analytics/visit", { method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true, body: JSON.stringify({ type: "ping", id: active.current.id }) });
+    }, 20_000);
     window.addEventListener("pagehide", finish);
     return () => { finish(); window.removeEventListener("pagehide", finish); };
   }, [allowed, pathname, searchParams]);

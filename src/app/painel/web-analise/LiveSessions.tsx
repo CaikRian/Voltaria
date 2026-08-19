@@ -1,0 +1,22 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+type LiveData = { checkedAt: string; total: number; visitors: number; pages: Array<{name:string;count:number}>; sessions: Array<{id:string;visitor:string;page:string;path:string;device:string;browser:string;source:string;startedAt:string;lastSeenAt:string}> };
+function elapsed(value: string) { const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000)); return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}min`; }
+
+export function LiveSessions() {
+  const [data, setData] = useState<LiveData | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    async function refresh() { try { const response = await fetch("/api/painel/web-analise/ao-vivo", { cache: "no-store" }); if (!response.ok) throw new Error(); const next = await response.json(); if (mounted) { setData(next); setFailed(false); } } catch { if (mounted) setFailed(true); } }
+    void refresh(); const timer = setInterval(refresh, 10_000); return () => { mounted = false; clearInterval(timer); };
+  }, []);
+  return <section className="overflow-hidden rounded-xl2 border border-emerald-200 bg-paper shadow-card">
+    <div className="flex flex-col gap-4 bg-gradient-to-r from-emerald-950 via-teal-900 to-cyan-900 p-5 text-white sm:flex-row sm:items-center sm:justify-between"><div><div className="flex items-center gap-2"><span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75"/><span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-400"/></span><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-200">Presença ao vivo</p></div><h2 className="mt-2 font-display text-xl font-bold">Quem está na loja agora</h2><p className="mt-1 text-xs text-white/60">Sessões anônimas ativas nos últimos 2 minutos · atualização automática</p></div><div className="flex gap-3"><div className="rounded-2xl bg-white/10 px-5 py-3 text-center backdrop-blur"><strong className="block font-display text-3xl">{data?.total ?? "—"}</strong><span className="text-[10px] uppercase tracking-wide text-white/60">sessões</span></div><div className="rounded-2xl bg-white/10 px-5 py-3 text-center backdrop-blur"><strong className="block font-display text-3xl">{data?.visitors ?? "—"}</strong><span className="text-[10px] uppercase tracking-wide text-white/60">visitantes</span></div></div></div>
+    <div className="grid lg:grid-cols-[260px_minmax(0,1fr)]"><aside className="border-b border-line p-5 lg:border-b-0 lg:border-r"><p className="text-[10px] font-black uppercase tracking-wide text-ink-muted">Onde estão</p><div className="mt-3 space-y-2">{data?.pages.slice(0,6).map((page)=><div key={page.name} className="flex items-center justify-between gap-2 rounded-xl bg-mist px-3 py-2"><span className="truncate text-xs font-semibold">{page.name}</span><strong className="text-xs text-emerald-700">{page.count}</strong></div>)}{data && !data.pages.length && <p className="py-5 text-center text-xs text-ink-muted">Ninguém navegando neste instante.</p>}{!data && <p className="py-5 text-center text-xs text-ink-muted">{failed ? "Não foi possível atualizar agora." : "Consultando presença…"}</p>}</div></aside>
+      <div className="overflow-x-auto"><table className="min-w-[720px] w-full text-left"><thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wide text-ink-muted"><tr><th className="px-4 py-3">Visitante</th><th className="px-4 py-3">Página atual</th><th className="px-4 py-3">Acesso</th><th className="px-4 py-3">Origem</th><th className="px-4 py-3">Na página</th></tr></thead><tbody className="divide-y divide-line">{data?.sessions.map((session)=><tr key={session.id} className="text-xs hover:bg-emerald-50/40"><td className="px-4 py-3 font-bold">Anônimo {session.visitor}</td><td className="max-w-56 truncate px-4 py-3"><span className="block font-semibold">{session.page}</span><span className="text-[10px] text-ink-muted">{session.path}</span></td><td className="px-4 py-3">{session.device} · {session.browser}</td><td className="max-w-40 truncate px-4 py-3 text-ink-muted">{session.source}</td><td className="px-4 py-3 font-bold text-emerald-700">{elapsed(session.startedAt)}</td></tr>)}</tbody></table>{data && !data.sessions.length && <div className="grid min-h-36 place-items-center text-sm text-ink-muted">Aguardando a próxima visita à loja.</div>}</div>
+    </div>
+  </section>;
+}

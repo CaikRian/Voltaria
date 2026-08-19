@@ -130,6 +130,7 @@ model WebsiteVisit {
   browser      String
   durationMs   Int       @default(0)
   startedAt    DateTime  @default(now())
+  lastSeenAt   DateTime  @default(now())
   endedAt      DateTime?
 
   @@index([startedAt])
@@ -137,6 +138,7 @@ model WebsiteVisit {
   @@index([productId, startedAt])
   @@index([visitorId, startedAt])
   @@index([sessionId, startedAt])
+  @@index([lastSeenAt])
 }
 
 // Endereços salvos do cliente — só pra usuários logados (checkout de convidado

@@ -14,7 +14,12 @@ export async function POST(request: NextRequest) {
 
   if (type === "end") {
     const durationMs = Math.min(Math.max(Number(body.durationMs) || 0, 0), 30 * 60 * 1000);
-    await prisma.websiteVisit.updateMany({ where: { id }, data: { durationMs, endedAt: new Date() } });
+    await prisma.websiteVisit.updateMany({ where: { id }, data: { durationMs, lastSeenAt: new Date(), endedAt: new Date() } });
+    return new NextResponse(null, { status: 204 });
+  }
+
+  if (type === "ping") {
+    await prisma.websiteVisit.updateMany({ where: { id, endedAt: null }, data: { lastSeenAt: new Date() } });
     return new NextResponse(null, { status: 204 });
   }
 
@@ -26,7 +31,7 @@ export async function POST(request: NextRequest) {
   const product = slug ? await prisma.product.findUnique({ where: { slug: decodeURIComponent(slug) }, select: { id: true, name: true } }) : null;
   await prisma.websiteVisit.upsert({
     where: { id },
-    update: {},
+    update: { lastSeenAt: new Date(), endedAt: null },
     create: {
       id, visitorId, sessionId, path,
       productId: product?.id, productName: product?.name,

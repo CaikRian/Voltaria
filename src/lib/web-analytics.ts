@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 const TZ = "America/Sao_Paulo";
 function day(value: Date) { return new Intl.DateTimeFormat("sv-SE", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(value); }
 function labelPath(path: string) { if (path === "/") return "Página inicial"; if (path === "/produtos") return "Catálogo"; if (path.startsWith("/produtos/")) return "Produto"; if (path.startsWith("/checkout")) return `Checkout · ${path.split("/").pop()}`; if (path.startsWith("/conta")) return "Minha conta"; return path; }
-function range(period: string, from?: string, to?: string) {
+export function getWebAnalyticsRange(period: string, from?: string, to?: string) {
   const now = new Date();
   if (from && to) { const start = new Date(`${from}T00:00:00-03:00`); const end = new Date(`${to}T23:59:59.999-03:00`); if (!Number.isNaN(+start) && !Number.isNaN(+end) && +end >= +start && (+end - +start) <= 366 * 86400000) return { start, end, label: `${from} a ${to}` }; }
   const days = [7, 30, 90, 365].includes(Number(period)) ? Number(period) : 30;
@@ -12,7 +12,7 @@ function range(period: string, from?: string, to?: string) {
 function rank<T extends string>(values: T[]) { const map = new Map<T, number>(); values.forEach((value) => map.set(value, (map.get(value) ?? 0) + 1)); return [...map].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count); }
 
 export async function getWebAnalytics(opts: { period?: string; from?: string; to?: string; page?: number; pageSize?: number }) {
-  const selected = range(opts.period ?? "30", opts.from, opts.to);
+  const selected = getWebAnalyticsRange(opts.period ?? "30", opts.from, opts.to);
   const where = { startedAt: { gte: selected.start, lte: selected.end } };
   const page = Math.max(opts.page ?? 1, 1); const pageSize = opts.pageSize ?? 12;
   const [visits, total, recent] = await Promise.all([

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireStaff } from "@/lib/auth-helpers";
 import { getWebAnalytics } from "@/lib/web-analytics";
+import { LiveSessions } from "./LiveSessions";
+import { WebAnalyticsExport } from "./WebAnalyticsExport";
 
 export const metadata: Metadata = { title: "Web análise · Painel" };
 export const dynamic = "force-dynamic";
@@ -18,6 +20,8 @@ export default async function WebAnalyticsPage({ searchParams }: { searchParams:
   const maxDaily = Math.max(...analytics.daily.map((item) => item.views), 1);
   const maxPage = Math.max(...analytics.pages.map((item) => item.views), 1);
   return <div className="space-y-5">
+    <LiveSessions />
+    <WebAnalyticsExport periodo={params.periodo} de={params.de} ate={params.ate} />
     <section className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-slate-950 via-indigo-950 to-brand p-6 text-white shadow-pop sm:p-8"><div className="absolute -right-16 -top-20 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl" /><div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-black uppercase tracking-[.2em] text-cyan-200/70">Inteligência de navegação</p><h1 className="mt-2 font-display text-3xl font-bold">Web análise</h1><p className="mt-2 max-w-2xl text-sm text-white/65">Entenda como visitantes chegam, o que procuram, onde permanecem e quais caminhos levam à compra.</p></div><div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 backdrop-blur"><p className="text-[10px] font-bold uppercase tracking-wide text-white/50">Período analisado</p><p className="mt-1 text-sm font-bold">{analytics.range.label}</p></div></div></section>
 
     <section className="rounded-xl2 border border-line bg-paper p-4 shadow-card"><div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div className="flex flex-wrap gap-2">{[7,30,90,365].map((period) => <Link key={period} href={`/painel/web-analise?periodo=${period}`} className={`rounded-xl border px-4 py-2 text-xs font-bold ${(!params.de && Number(params.periodo ?? 30) === period) ? "border-brand bg-brand text-white" : "border-line hover:border-brand hover:text-brand"}`}>{period === 365 ? "1 ano" : `${period} dias`}</Link>)}</div><form className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]"><label className="text-[10px] font-bold uppercase tracking-wide text-ink-muted">De<input name="de" type="date" defaultValue={params.de} required className="mt-1 block h-10 rounded-xl border border-line px-3 text-sm text-ink" /></label><label className="text-[10px] font-bold uppercase tracking-wide text-ink-muted">Até<input name="ate" type="date" defaultValue={params.ate} required className="mt-1 block h-10 rounded-xl border border-line px-3 text-sm text-ink" /></label><button className="h-10 self-end rounded-xl bg-slate-900 px-4 text-xs font-bold text-white">Aplicar período</button></form></div></section>
