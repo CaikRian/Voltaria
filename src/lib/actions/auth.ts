@@ -17,8 +17,20 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
     name: formData.get("name"),
     cpf: formData.get("cpf"),
     phone: formData.get("phone"),
+    dateOfBirth: formData.get("dateOfBirth"),
+    referralSource: formData.get("referralSource"),
+    cep: formData.get("cep"),
+    street: formData.get("street"),
+    number: formData.get("number"),
+    complement: formData.get("complement") ?? "",
+    neighborhood: formData.get("neighborhood"),
+    city: formData.get("city"),
+    state: formData.get("state"),
     allowEmailUpdates: formData.get("allowEmailUpdates") === "on",
     allowWhatsappUpdates: formData.get("allowWhatsappUpdates") === "on",
+    captchaChallenge: formData.get("captchaChallenge"),
+    captchaAnswer: formData.get("captchaAnswer"),
+    botTrap: formData.get("website") ?? "",
     email: formData.get("email"),
     password: formData.get("password"),
     confirm: formData.get("confirm"),
@@ -41,7 +53,10 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
   const passwordHash = await bcrypt.hash(password, 12);
 
   try {
-    await prisma.user.create({ data: { name, cpf, phone, email, passwordHash, role: "CLIENTE", allowEmailUpdates, allowWhatsappUpdates, communicationConsentAt: allowEmailUpdates || allowWhatsappUpdates ? new Date() : null } });
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({ data: { name, cpf, phone, email, passwordHash, role: "CLIENTE", dateOfBirth: new Date(`${parsed.data.dateOfBirth}T12:00:00.000Z`), referralSource: parsed.data.referralSource, allowEmailUpdates, allowWhatsappUpdates, communicationConsentAt: new Date() } });
+      await tx.address.create({ data: { userId: user.id, label: "Casa", name, cep: parsed.data.cep, street: parsed.data.street, number: parsed.data.number, complement: parsed.data.complement || null, neighborhood: parsed.data.neighborhood, city: parsed.data.city, state: parsed.data.state, isDefault: true } });
+    });
   } catch (error) {
     if (typeof error === "object" && error && "code" in error && error.code === "P2002") return { error: "E-mail ou CPF já cadastrado." };
     throw error;

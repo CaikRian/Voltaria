@@ -26,8 +26,23 @@ export const registerSchema = z
     name: z.string().min(2, "Informe seu nome"),
     cpf: cpfSchema,
     phone: phoneSchema,
+    dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data válida").refine((value) => {
+      const date = new Date(`${value}T12:00:00.000Z`);
+      return !Number.isNaN(date.getTime()) && date <= new Date();
+    }, "A data de nascimento não pode ser futura"),
+    referralSource: z.string().trim().min(1, "Escolha uma opção").max(80),
+    cep: z.string().regex(/^\d{5}-?\d{3}$/, "CEP inválido").transform((value) => value.replace(/\D/g, "")),
+    street: z.string().trim().min(2, "Informe a rua").max(160),
+    number: z.string().trim().min(1, "Informe o número").max(20),
+    complement: z.string().trim().max(80).optional().or(z.literal("")),
+    neighborhood: z.string().trim().min(2, "Informe o bairro").max(100),
+    city: z.string().trim().min(2, "Informe a cidade").max(100),
+    state: z.string().trim().length(2, "UF inválida").transform((value) => value.toUpperCase()),
     allowEmailUpdates: z.boolean().default(false),
     allowWhatsappUpdates: z.boolean().default(false),
+    captchaChallenge: z.coerce.number().int(),
+    captchaAnswer: z.coerce.number().int(),
+    botTrap: z.string().max(0).optional(),
     email: z.string().email("E-mail inválido"),
     password: z
       .string()
@@ -39,6 +54,10 @@ export const registerSchema = z
   .refine((d) => d.password === d.confirm, {
     message: "As senhas não coincidem",
     path: ["confirm"],
+  })
+  .refine((d) => d.captchaAnswer === d.captchaChallenge, {
+    message: "Resposta do desafio incorreta",
+    path: ["captchaAnswer"],
   });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
