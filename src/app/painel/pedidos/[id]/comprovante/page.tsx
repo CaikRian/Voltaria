@@ -41,6 +41,27 @@ export default async function PainelPaymentReceiptPage({ params }: { params: Par
         totalCents={order.totalCents}
         payment={payment}
         accountCpf={order.user?.cpf}
+        orderDetails={{
+          status: order.status,
+          createdAt: order.createdAt,
+          shippingCents: order.shippingCents,
+          shippingMethod: order.shippingMethod,
+          shippingProvider: order.shippingProvider,
+          shipName: order.shipName,
+          shipStreet: order.shipStreet,
+          shipNumber: order.shipNumber,
+          shipComplement: order.shipComplement,
+          shipNeighborhood: order.shipNeighborhood,
+          shipCity: order.shipCity,
+          shipState: order.shipState,
+          shipCep: order.shipCep,
+          trackingCode: order.trackingCode,
+          trackingUrl: order.trackingUrl,
+          shippingLabelStatus: order.shippingLabelStatus,
+          refundedCents: order.refundedCents,
+          returns: order.returnRequests,
+          shippingEvents: order.shippingEvents,
+        }}
       />
     </div>
   );

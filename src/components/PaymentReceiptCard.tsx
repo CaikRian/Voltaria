@@ -11,6 +11,7 @@ export type ReceiptPayment = {
   date_created?: string;
   date_approved?: string;
   transaction_amount?: number;
+  transaction_amount_refunded?: number;
   payment_type_id?: string;
   payment_method_id?: string;
   installments?: number;
@@ -36,6 +37,33 @@ export type ReceiptPayment = {
 };
 
 type ReceiptItem = { id: string; productName: string; variantName?: string | null; unitCents: number; qty: number };
+type ReceiptReturn = { id: string; status: string; requestType: string; approvedCents: number | null; requestedCents: number; refundedAt: Date | string | null; mpRefundId: string | null };
+type ReceiptShippingEvent = { id: string; title: string; occurredAt: Date | string; needsAttention: boolean };
+
+type ReceiptOrderDetails = {
+  status: string;
+  createdAt: Date | string;
+  shippingCents: number | null;
+  shippingMethod: string | null;
+  shippingProvider: string | null;
+  shipName: string | null;
+  shipStreet: string | null;
+  shipNumber: string | null;
+  shipComplement: string | null;
+  shipNeighborhood: string | null;
+  shipCity: string | null;
+  shipState: string | null;
+  shipCep: string | null;
+  trackingCode: string | null;
+  trackingUrl: string | null;
+  shippingLabelStatus: string | null;
+  refundedCents: number;
+  returns: ReceiptReturn[];
+  shippingEvents: ReceiptShippingEvent[];
+};
+
+const ORDER_LABELS: Record<string, string> = { AGUARDANDO_PAGAMENTO: "Aguardando pagamento", PAGAMENTO_RECUSADO: "Pagamento recusado", PAGAMENTO_APROVADO: "Pagamento confirmado", PREPARANDO_ENVIO: "Preparando envio", ENVIADO: "Enviado", ENTREGUE: "Entregue", REEMBOLSADO: "Reembolsado", CANCELADO: "Cancelado" };
+const PAYMENT_LABELS: Record<string, string> = { approved: "Pagamento aprovado", pending: "Pagamento pendente", in_process: "Em análise", rejected: "Pagamento recusado", refunded: "Pagamento reembolsado", charged_back: "Pagamento contestado", cancelled: "Pagamento cancelado" };
 
 function formatDate(value?: string | Date | null) {
   if (!value) return "—";
@@ -59,6 +87,7 @@ export function PaymentReceiptCard({
   totalCents,
   payment,
   accountCpf,
+  orderDetails,
 }: {
   variant: "customer" | "staff";
   orderId: string;
@@ -68,6 +97,7 @@ export function PaymentReceiptCard({
   totalCents: number;
   payment: ReceiptPayment;
   accountCpf?: string | null;
+  orderDetails: ReceiptOrderDetails;
 }) {
   const paidCents = Math.round((payment.transaction_amount ?? 0) * 100);
   const paymentType = payment.payment_type_id ?? "";
@@ -85,6 +115,11 @@ export function PaymentReceiptCard({
     variant === "staff" && accountCpf && payerDoc?.type === "CPF" && payerDoc.number
       ? accountCpf.replace(/\D/g, "") === payerDoc.number.replace(/\D/g, "")
       : null;
+  const itemSubtotalCents = items.reduce((sum, item) => sum + item.unitCents * item.qty, 0);
+  const refundedCents = Math.max(orderDetails.refundedCents, Math.round((payment.transaction_amount_refunded ?? 0) * 100));
+  const confirmedCents = paidCents || totalCents;
+  const netAfterRefundCents = Math.max(0, confirmedCents - refundedCents);
+  const latestShippingEvent = orderDetails.shippingEvents.at(-1);
 
   return (
     <main className="mx-auto max-w-3xl rounded-xl2 border border-line bg-paper p-6 sm:p-10 print:max-w-none print:rounded-none print:border-0 print:p-0">
@@ -95,7 +130,7 @@ export function PaymentReceiptCard({
         </div>
         <div className="flex flex-col items-end gap-2">
           <div className="rounded-full bg-green-50 px-4 py-2 text-sm font-semibold text-green-700">
-            {payment.status === "approved" ? "Pagamento aprovado" : `Status: ${payment.status ?? "—"}`}
+            {PAYMENT_LABELS[payment.status || ""] ?? `Status: ${payment.status ?? "—"}`}
           </div>
           {payment.live_mode === false && (
             <div className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-800">
@@ -174,6 +209,12 @@ export function PaymentReceiptCard({
         )}
       </section>
 
+      <section className="grid gap-4 border-b border-line py-6 sm:grid-cols-3">
+        <div className="rounded-xl bg-mist p-4"><p className="text-xs font-bold uppercase tracking-wide text-ink-muted">Situação do pedido</p><p className="mt-2 text-sm font-semibold">{ORDER_LABELS[orderDetails.status] ?? orderDetails.status}</p><p className="mt-1 text-xs text-ink-muted">Pedido criado em {formatDate(orderDetails.createdAt)}</p></div>
+        <div className="rounded-xl bg-mist p-4"><p className="text-xs font-bold uppercase tracking-wide text-ink-muted">Entrega contratada</p><p className="mt-2 text-sm font-semibold">{orderDetails.shippingMethod || "Frete não informado"}</p><p className="mt-1 text-xs text-ink-muted">{orderDetails.shippingProvider === "MELHOR_ENVIO" ? "Intermediado pelo Melhor Envio" : orderDetails.shippingProvider || "Transportadora não informada"}</p></div>
+        <div className={`rounded-xl p-4 ${refundedCents > 0 ? "bg-violet-50" : "bg-emerald-50"}`}><p className="text-xs font-bold uppercase tracking-wide text-ink-muted">Resultado financeiro</p><p className="mt-2 text-sm font-semibold">{refundedCents > 0 ? `${formatBRL(refundedCents)} reembolsado` : "Sem reembolsos"}</p><p className="mt-1 text-xs text-ink-muted">Valor líquido da compra: {formatBRL(netAfterRefundCents)}</p></div>
+      </section>
+
       <section className="py-6">
         <p className="mb-3 text-sm font-medium">Itens da compra</p>
         <ul className="divide-y divide-line text-sm">
@@ -184,11 +225,12 @@ export function PaymentReceiptCard({
             </li>
           ))}
         </ul>
-        <div className="mt-4 flex justify-between border-t-2 border-ink pt-4 text-lg font-semibold">
-          <span>Total confirmado</span>
-          <span>{formatBRL(paidCents || totalCents)}</span>
-        </div>
+        <dl className="mt-4 space-y-2 border-t border-line pt-4 text-sm"><div className="flex justify-between"><dt className="text-ink-muted">Subtotal dos produtos</dt><dd>{formatBRL(itemSubtotalCents)}</dd></div><div className="flex justify-between"><dt className="text-ink-muted">Frete</dt><dd>{orderDetails.shippingCents == null ? "—" : formatBRL(orderDetails.shippingCents)}</dd></div><div className="flex justify-between border-t-2 border-ink pt-3 text-lg font-semibold"><dt>Total confirmado</dt><dd>{formatBRL(confirmedCents)}</dd></div>{refundedCents > 0 && <><div className="flex justify-between text-violet-700"><dt>Reembolsos confirmados</dt><dd>− {formatBRL(refundedCents)}</dd></div><div className="flex justify-between rounded-lg bg-violet-50 px-3 py-2 font-semibold"><dt>Valor após reembolsos</dt><dd>{formatBRL(netAfterRefundCents)}</dd></div></>}</dl>
       </section>
+
+      {orderDetails.shipStreet && <section className="grid gap-5 border-t border-line py-6 text-sm sm:grid-cols-2"><div><p className="font-semibold">Endereço de entrega</p><p className="mt-2 text-ink-soft">{orderDetails.shipName}<br />{orderDetails.shipStreet}, {orderDetails.shipNumber}{orderDetails.shipComplement ? ` — ${orderDetails.shipComplement}` : ""}<br />{orderDetails.shipNeighborhood} · {orderDetails.shipCity}/{orderDetails.shipState}<br />CEP {orderDetails.shipCep}</p></div><div><p className="font-semibold">Acompanhamento da entrega</p><p className="mt-2 text-ink-soft">{latestShippingEvent?.title || (orderDetails.trackingCode ? "Rastreamento disponível" : "Aguardando expedição")}</p>{latestShippingEvent && <p className="mt-1 text-xs text-ink-muted">Atualizado em {formatDate(latestShippingEvent.occurredAt)}</p>}{orderDetails.trackingCode && <p className="mt-2 font-mono text-xs">{orderDetails.trackingCode}</p>}{orderDetails.trackingUrl && <a href={orderDetails.trackingUrl} className="no-print mt-2 inline-block text-xs font-bold text-brand hover:underline">Abrir rastreamento ↗</a>}</div></section>}
+
+      {orderDetails.returns.length > 0 && <section className="border-t border-line py-6"><p className="mb-3 text-sm font-semibold">Cancelamentos e devoluções</p><ul className="space-y-2 text-sm">{orderDetails.returns.map((request) => <li key={request.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-mist p-3"><span>{request.requestType === "CANCELLATION" ? "Cancelamento" : "Devolução"} · {request.status}</span><span className="font-semibold">{formatBRL(request.approvedCents ?? request.requestedCents)}</span>{request.mpRefundId && <span className="w-full break-all font-mono text-[10px] text-ink-muted">ID do reembolso: {request.mpRefundId}</span>}</li>)}</ul></section>}
 
       <div className="border-t border-line pt-5 text-xs leading-relaxed text-ink-muted">
         {variant === "customer" ? (
