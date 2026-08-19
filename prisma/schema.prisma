@@ -41,10 +41,28 @@ model Product {
   variants      Variant[]
   reviews       Review[]
   questions     Question[]
+  auditEvents   ProductAuditEvent[]
   createdAt     DateTime  @default(now())
 
   @@index([categoryId])
   @@index([featured])
+}
+
+// Auditoria imutável do catálogo. Os dados do operador são snapshots para que o
+// histórico continue legível mesmo se a conta da equipe for removida depois.
+model ProductAuditEvent {
+  id         String   @id @default(cuid())
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+  action     String   // CREATED | UPDATED
+  changes    String   // JSON: [{ field, label, before, after }]
+  actorId    String?
+  actorName  String?
+  actorEmail String?
+  actorRole  String?
+  createdAt  DateTime @default(now())
+
+  @@index([productId, createdAt])
 }
 
 // Variações (ex.: "128GB / Preto"). Preço/estoque podem sobrescrever o produto.

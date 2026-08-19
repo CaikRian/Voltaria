@@ -8,6 +8,7 @@ import { updateProduct } from "@/lib/actions/products";
 import { ProductForm, type ProductInitial } from "../ProductForm";
 import { formatBRL } from "@/lib/format";
 import { DeleteProductButton } from "../DeleteProductButton";
+import { ProductAuditTimeline } from "../ProductAuditTimeline";
 
 export const metadata: Metadata = { title: "Editar produto · Painel" };
 
@@ -61,6 +62,8 @@ export default async function EditarProdutoPage({ params }: { params: Params }) 
         initial={initial}
         submitLabel="Salvar alterações"
       />
+
+      <ProductAuditTimeline productName={product.name} productCreatedAt={product.createdAt} events={product.auditEvents} />
 
       {can(user.role, "product:delete") && (
         <section className="rounded-xl2 border border-red-200 bg-red-50/60 p-5 shadow-card">

@@ -1,0 +1,25 @@
+type AuditChange = { field: string; label: string; before: string; after: string };
+type AuditEvent = { id: string; action: string; changes: string; actorName: string | null; actorEmail: string | null; actorRole: string | null; createdAt: Date };
+
+const ROLE_LABEL: Record<string, string> = { ADMIN: "Administrador", GERENTE: "Gerente", VENDEDOR: "Vendedor" };
+function parseChanges(value: string): AuditChange[] { try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch { return []; } }
+function initials(name: string) { return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "S"; }
+
+export function ProductAuditTimeline({ productName, productCreatedAt, events }: { productName: string; productCreatedAt: Date; events: AuditEvent[] }) {
+  const ordered = [...events].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  const hasCreation = ordered.some((event) => event.action === "CREATED");
+  const timeline = [
+    ...(!hasCreation ? [{ id: "legacy-creation", action: "LEGACY_CREATED", changes: JSON.stringify([{ field: "created", label: "Produto cadastrado", before: "—", after: productName }]), actorName: null, actorEmail: null, actorRole: null, createdAt: productCreatedAt }] : []),
+    ...ordered,
+  ];
+
+  return <section className="overflow-hidden rounded-[1.5rem] border border-line bg-paper shadow-card">
+    <div className="flex flex-col gap-3 border-b border-line bg-gradient-to-r from-slate-950 to-slate-800 p-5 text-white sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-black uppercase tracking-[.18em] text-white/50">Auditoria do catálogo</p><h2 className="mt-1 font-display text-xl font-bold">Histórico do produto</h2><p className="mt-1 text-sm text-white/60">Registro permanente de criação e alterações realizadas pela equipe.</p></div><div className="rounded-xl bg-white/10 px-4 py-2 text-center"><strong className="block text-xl">{timeline.length}</strong><span className="text-[10px] uppercase tracking-wide text-white/60">evento(s)</span></div></div>
+    <div className="p-5 sm:p-6"><ol className="relative ml-4 border-l-2 border-line pl-8">{timeline.map((event, index) => {
+      const changes = parseChanges(event.changes);
+      const creation = event.action === "CREATED" || event.action === "LEGACY_CREATED";
+      const actor = event.actorName || event.actorEmail || "Sistema / operador não registrado";
+      return <li key={event.id} className="relative pb-7 last:pb-0"><span className={`absolute -left-[2.7rem] top-0 grid h-6 w-6 place-items-center rounded-full border-4 border-white text-[9px] font-black text-white ${creation ? "bg-emerald-500 ring-4 ring-emerald-100" : index === timeline.length - 1 ? "bg-brand ring-4 ring-brand-soft" : "bg-slate-400"}`}>{creation ? "+" : "✓"}</span><div className={`rounded-xl border p-4 ${creation ? "border-emerald-200 bg-emerald-50/60" : "border-line bg-mist/35"}`}><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="flex min-w-0 items-center gap-3"><span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-black ${event.actorName || event.actorEmail ? "bg-brand-soft text-brand" : "bg-slate-200 text-slate-600"}`}>{initials(actor)}</span><div className="min-w-0"><p className="font-bold text-ink">{creation ? "Produto cadastrado" : `${changes.length} campo(s) alterado(s)`}</p><p className="truncate text-xs text-ink-muted">{actor}{event.actorRole ? ` · ${ROLE_LABEL[event.actorRole] ?? event.actorRole}` : ""}</p></div></div><time className="shrink-0 text-xs font-semibold text-ink-muted">{new Date(event.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}</time></div>{event.action === "LEGACY_CREATED" && <p className="mt-3 rounded-lg bg-white/70 px-3 py-2 text-xs text-ink-muted">Este produto é anterior ao histórico de auditoria. A data de cadastro foi preservada, mas o operador original não estava registrado.</p>}{!creation && changes.length > 0 && <details className="group mt-3"><summary className="cursor-pointer select-none text-xs font-bold text-brand">Ver detalhes das alterações <span className="inline-block transition group-open:rotate-180">⌄</span></summary><div className="mt-3 grid gap-2">{changes.map((change, changeIndex) => <div key={`${change.field}-${changeIndex}`} className="rounded-lg border border-line bg-white p-3"><p className="text-xs font-black text-ink">{change.label}</p><div className="mt-2 grid gap-2 text-xs sm:grid-cols-2"><div className="min-w-0 rounded-lg bg-red-50 px-3 py-2"><span className="block text-[9px] font-black uppercase tracking-wide text-red-500">Antes</span><p className="mt-1 break-words text-slate-600">{change.before}</p></div><div className="min-w-0 rounded-lg bg-emerald-50 px-3 py-2"><span className="block text-[9px] font-black uppercase tracking-wide text-emerald-600">Depois</span><p className="mt-1 break-words text-slate-700">{change.after}</p></div></div></div>)}</div></details>}</div></li>;
+    })}</ol></div>
+  </section>;
+}

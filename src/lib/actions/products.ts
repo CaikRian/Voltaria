@@ -25,6 +25,27 @@ function isUniqueError(e: unknown): boolean {
 // Reais → centavos (dinheiro sempre em Int).
 const toCents = (reais: number) => Math.round(reais * 100);
 
+type AuditChange = { field: string; label: string; before: string; after: string };
+const auditValue = (value: unknown) => value == null || value === "" ? "Não informado" : String(value);
+function addChange(changes: AuditChange[], field: string, label: string, before: unknown, after: unknown) {
+  const oldValue = auditValue(before);
+  const newValue = auditValue(after);
+  if (oldValue !== newValue) changes.push({ field, label, before: oldValue, after: newValue });
+}
+function money(cents: number | null | undefined) {
+  return cents == null ? "Não informado" : (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+function gallerySummary(value: string | null | undefined) {
+  try { const images = JSON.parse(value ?? "[]"); return Array.isArray(images) ? `${images.length} imagem(ns): ${images.join(" | ") || "nenhuma"}` : "Nenhuma imagem"; } catch { return "Galeria inválida"; }
+}
+function variantSummary(variants: Array<{ name: string; sku: string; stock: number; priceCents: number | null }>) {
+  if (!variants.length) return "Sem variações";
+  return variants.map((variant) => `${variant.name} [${variant.sku}] · ${variant.stock} un. · ${variant.priceCents == null ? "herda o preço" : money(variant.priceCents)}`).join(" | ");
+}
+function actorData(actor: { id: string; name: string | null; email: string; role: string }) {
+  return { actorId: actor.id, actorName: actor.name, actorEmail: actor.email, actorRole: actor.role };
+}
+
 // Gera slug amigável a partir do nome.
 function slugify(text: string): string {
   return text
@@ -85,7 +106,7 @@ export async function createProduct(
   _prev: ProductFormState,
   formData: FormData
 ): Promise<ProductFormState> {
-  await requireCapability("product:create");
+  const actor = await requireCapability("product:create");
 
   const parsed = productSchema.safeParse(parseForm(formData));
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
@@ -118,6 +139,13 @@ export async function createProduct(
               })),
             }
           : undefined,
+        auditEvents: {
+          create: {
+            action: "CREATED",
+            changes: JSON.stringify([{ field: "created", label: "Produto cadastrado", before: "—", after: "Cadastro inicial concluído" }]),
+            ...actorData(actor),
+          },
+        },
       },
     });
   } catch (e) {
@@ -138,7 +166,7 @@ export async function updateProduct(
   _prev: ProductFormState,
   formData: FormData
 ): Promise<ProductFormState> {
-  await requireCapability("product:update");
+  const actor = await requireCapability("product:update");
   const user = await getCurrentUser();
 
   const parsed = productSchema.safeParse(parseForm(formData));
@@ -147,7 +175,7 @@ export async function updateProduct(
 
   const existing = await prisma.product.findUnique({
     where: { id },
-    select: { priceCents: true, compareCents: true },
+    include: { category: { select: { name: true } }, variants: { orderBy: { name: "asc" } } },
   });
   if (!existing) return { error: "Produto não encontrado." };
 
@@ -162,6 +190,24 @@ export async function updateProduct(
     : existing.compareCents;
 
   const slug = await uniqueSlug(slugify(d.name), id);
+  const nextCategory = d.categoryId === existing.categoryId
+    ? existing.category
+    : await prisma.category.findUnique({ where: { id: d.categoryId }, select: { name: true } });
+  const nextGallery = d.gallery.length ? JSON.stringify(d.gallery) : null;
+  const nextVariants = d.variants.map((variant) => ({ name: variant.name, sku: variant.sku, stock: variant.stock, priceCents: variant.price ? toCents(variant.price) : null })).sort((a, b) => a.name.localeCompare(b.name));
+  const changes: AuditChange[] = [];
+  addChange(changes, "name", "Nome", existing.name, d.name);
+  addChange(changes, "description", "Descrição", existing.description, d.description);
+  addChange(changes, "brand", "Marca", existing.brand, d.brand || null);
+  addChange(changes, "category", "Categoria", existing.category.name, nextCategory?.name ?? d.categoryId);
+  addChange(changes, "price", "Preço", money(existing.priceCents), money(priceCents));
+  addChange(changes, "comparePrice", "Preço anterior", money(existing.compareCents), money(compareCents));
+  addChange(changes, "image", "Imagem principal", existing.imageUrl, d.imageUrl);
+  addChange(changes, "gallery", "Galeria", gallerySummary(existing.gallery), gallerySummary(nextGallery));
+  addChange(changes, "stock", "Estoque simples", `${existing.stock} un.`, `${d.stock} un.`);
+  addChange(changes, "active", "Visibilidade", existing.active ? "Ativo" : "Inativo", d.active ? "Ativo" : "Inativo");
+  addChange(changes, "featured", "Destaque", existing.featured ? "Sim" : "Não", d.featured ? "Sim" : "Não");
+  addChange(changes, "variants", "Variações", variantSummary(existing.variants), variantSummary(nextVariants));
 
   try {
     // Substitui as variações (apaga e recria) — abordagem simples e confiável.
@@ -194,6 +240,7 @@ export async function updateProduct(
             : undefined,
         },
       }),
+      ...(changes.length ? [prisma.productAuditEvent.create({ data: { productId: id, action: "UPDATED", changes: JSON.stringify(changes), ...actorData(actor) } })] : []),
     ]);
   } catch (e) {
     if (isUniqueError(e)) {

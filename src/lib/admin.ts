@@ -56,7 +56,7 @@ export async function getAdminProducts(opts?: string | {
 export async function getAdminProduct(id: string) {
   return prisma.product.findUnique({
     where: { id },
-    include: { variants: true },
+    include: { variants: true, auditEvents: { orderBy: { createdAt: "desc" } } },
   });
 }
 
