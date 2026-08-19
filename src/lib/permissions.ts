@@ -17,6 +17,7 @@ export type Capability =
   | "question:ask"
   | "question:answer"
   | "content:moderate" // ocultar/reexibir avaliações e dúvidas
+  | "customer:view" // visualizar perfil/histórico de clientes no painel
   | "user:manage" // gerenciar contas/vendedores
   | "settings:manage";
 
@@ -29,6 +30,7 @@ const MATRIX: Record<Role, Capability[]> = {
     "order:read:all",
     "order:update:status",
     "question:answer",
+    "customer:view",
   ],
   GERENTE: [
     "product:read",
@@ -40,6 +42,7 @@ const MATRIX: Record<Role, Capability[]> = {
     "order:update:status",
     "question:answer",
     "content:moderate",
+    "customer:view",
     "user:manage",
   ],
   ADMIN: [
@@ -52,6 +55,7 @@ const MATRIX: Record<Role, Capability[]> = {
     "order:update:status",
     "question:answer",
     "content:moderate",
+    "customer:view",
     "user:manage",
     "settings:manage",
   ],

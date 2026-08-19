@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { STAFF_ROLES } from "@/lib/permissions";
+import { maskCpf } from "@/lib/format";
 
 // Consultas específicas do painel (incluem produtos inativos, que a loja não mostra).
 
@@ -318,4 +319,105 @@ export async function getAdminUsers(q?: string) {
     select: { id: true, name: true, email: true, role: true, createdAt: true },
     orderBy: { createdAt: "desc" },
   });
+}
+
+// --- Clientes (CRM do painel) ---
+// Nunca selecionamos passwordHash/dateOfBirth/gender aqui — minimização de dado (LGPD),
+// esses campos não têm função operacional pro vendedor. cpf é tratado à parte (mascarado).
+
+const PAID_ORDER_STATUSES = ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO", "ENVIADO", "ENTREGUE"];
+
+export async function getAdminCustomers(opts?: {
+  q?: string;
+  sort?: "recent" | "orders" | "lastAccess";
+  page?: number;
+  pageSize?: number;
+}) {
+  const pageSize = Math.min(Math.max(opts?.pageSize ?? 12, 6), 50);
+  const page = Math.max(opts?.page ?? 1, 1);
+  const where = {
+    role: "CLIENTE" as const,
+    ...(opts?.q
+      ? { OR: [{ name: { contains: opts.q } }, { email: { contains: opts.q } }, { phone: { contains: opts.q.replace(/\D/g, "") } }] }
+      : {}),
+  };
+  const orderBy =
+    opts?.sort === "orders" ? { orders: { _count: "desc" as const } }
+      : opts?.sort === "lastAccess" ? { lastLoginAt: "desc" as const }
+      : { createdAt: "desc" as const };
+
+  const [customers, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      select: {
+        id: true, name: true, email: true, phone: true, image: true,
+        createdAt: true, lastLoginAt: true,
+        _count: { select: { orders: true, reviews: true, questions: true } },
+      },
+      orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.user.count({ where }),
+  ]);
+
+  // Total gasto só da página atual — evita agregar a base inteira a cada busca.
+  const spendByCustomer = await prisma.order.groupBy({
+    by: ["userId"],
+    where: { userId: { in: customers.map((c) => c.id) }, status: { in: PAID_ORDER_STATUSES } },
+    _sum: { totalCents: true },
+  });
+  const spendMap = new Map(spendByCustomer.map((s) => [s.userId, s._sum.totalCents ?? 0]));
+
+  const items = customers.map((c) => ({ ...c, totalSpentCents: spendMap.get(c.id) ?? 0 }));
+
+  return Object.assign(items, {
+    customers: items,
+    total,
+    page,
+    pageSize,
+    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+  });
+}
+
+export async function getAdminCustomer(id: string) {
+  const customer = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true, name: true, email: true, phone: true, image: true, cpf: true,
+      createdAt: true, emailVerified: true, lastLoginAt: true, role: true,
+      allowEmailUpdates: true, allowWhatsappUpdates: true, referralSource: true,
+      addresses: { orderBy: { isDefault: "desc" } },
+      orders: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          items: true,
+          statusEvents: { orderBy: { createdAt: "asc" } },
+          messages: { orderBy: { createdAt: "asc" } },
+        },
+      },
+      reviews: {
+        orderBy: { createdAt: "desc" },
+        include: { product: { select: { name: true, slug: true, imageUrl: true } } },
+      },
+      questions: {
+        orderBy: { createdAt: "desc" },
+        include: { product: { select: { name: true, slug: true } } },
+      },
+    },
+  });
+
+  // null também se o id for de um membro da equipe — essa tela é só pra CLIENTE.
+  if (!customer || customer.role !== "CLIENTE") return null;
+
+  const paidOrders = customer.orders.filter((o) => PAID_ORDER_STATUSES.includes(o.status));
+  const { cpf, ...rest } = customer;
+
+  return {
+    ...rest,
+    cpfMasked: cpf ? maskCpf(cpf) : null,
+    totalOrders: customer.orders.length,
+    totalSpentCents: paidOrders.reduce((sum, o) => sum + o.totalCents, 0),
+    lastOrderAt: customer.orders[0]?.createdAt ?? null,
+  };
 }

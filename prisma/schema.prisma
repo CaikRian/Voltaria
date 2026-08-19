@@ -95,6 +95,7 @@ model User {
   role          String    @default("CLIENTE") // CLIENTE | VENDEDOR | GERENTE | ADMIN
   emailVerified DateTime?
   createdAt     DateTime  @default(now())
+  lastLoginAt   DateTime? // atualizado no evento signIn (src/auth.ts) — último login, não navegação em tempo real
 
   orders       Order[]
   reviews      Review[]

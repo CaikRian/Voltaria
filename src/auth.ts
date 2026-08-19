@@ -49,4 +49,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ]
       : []),
   ],
+  events: {
+    // Alimenta "último acesso" no painel de clientes — só marca login de fato,
+    // não navegação/página vista (isso exigiria outro tipo de tracking).
+    async signIn({ user }) {
+      if (user?.id) {
+        await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+      }
+    },
+  },
 });

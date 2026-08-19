@@ -13,6 +13,7 @@ export default async function PainelLayout({ children }: { children: React.React
     { href: "/painel", label: "Visão geral", icon: "⌂" },
     { href: "/painel/produtos", label: "Produtos", icon: "▦" },
     { href: "/painel/pedidos", label: "Pedidos", icon: "□", badge: counts.refunds },
+    ...(can(user.role, "customer:view") ? [{ href: "/painel/clientes", label: "Clientes", icon: "☺" }] : []),
     { href: "/painel/conversas", label: "Conversas", icon: "✦", badge: counts.chats },
     { href: "/painel/relatorios", label: "Relatórios", icon: "↗" },
     { href: "/painel/web-analise", label: "Web análise", icon: "◉" },
