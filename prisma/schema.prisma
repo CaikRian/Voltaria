@@ -36,6 +36,10 @@ model Product {
   featured      Boolean   @default(false)
   active        Boolean   @default(true)
   stock         Int       @default(0) // estoque quando não há variações
+  weightGrams   Int       @default(300)
+  widthCm       Int       @default(11)
+  heightCm      Int       @default(5)
+  lengthCm      Int       @default(16)
   category      Category  @relation(fields: [categoryId], references: [id])
   categoryId    String
   variants      Variant[]
@@ -258,6 +262,9 @@ model Order {
   // --- Frete ---
   shippingCents  Int? // valor efetivamente cobrado (0 = grátis; null = pedido legado)
   shippingMethod String? // rótulo da opção escolhida, ex.: "Econômico — 2 a 4 dias úteis"
+  shippingProvider  String?
+  shippingServiceId String?
+  melhorEnvioOrderId String? @unique
 
   // --- Rastreamento de envio ---
   // Sem integração com API de transportadora — o vendedor cola o código/link que
@@ -284,6 +291,16 @@ model Order {
   @@index([userId])
   @@index([abandonedAt])
   @@index([stockReservationStatus, stockReservationExpiresAt])
+}
+
+model IntegrationCredential {
+  id                    String   @id @default(cuid())
+  provider              String   @unique
+  encryptedAccessToken  String
+  encryptedRefreshToken String?
+  expiresAt             DateTime
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 model OrderItem {

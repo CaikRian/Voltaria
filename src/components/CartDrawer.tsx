@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCart } from "@/store/cart";
 import { formatBRL } from "@/lib/format";
 import { ButtonLink, Button } from "@/components/ui/Button";
-import { ShippingCalculator } from "@/components/ShippingCalculator";
+import { RealShippingCalculator } from "@/components/RealShippingCalculator";
 
 export function CartDrawer() {
   const { items, isOpen, close, remove, setQty, totalCents } = useCart();
@@ -111,7 +111,7 @@ export function CartDrawer() {
                 <span className="font-display text-xl font-semibold">{formatBRL(total)}</span>
               </div>
               <div className="mb-4">
-                <ShippingCalculator subtotalCents={total} />
+                <RealShippingCalculator items={items.map((item) => ({ productId: item.productId, qty: item.qty }))} />
               </div>
               <ButtonLink href="/checkout" size="lg" className="w-full" onClick={close}>
                 Finalizar compra

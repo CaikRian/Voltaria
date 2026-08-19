@@ -19,6 +19,10 @@ export type ProductInitial = {
   imageUrl: string;
   gallery: string[];
   stock: string;
+  weightGrams: string;
+  widthCm: string;
+  heightCm: string;
+  lengthCm: string;
   featured: boolean;
   active: boolean;
   variants: VariantRow[];
@@ -42,6 +46,10 @@ const empty: ProductInitial = {
   imageUrl: "",
   gallery: [],
   stock: "0",
+  weightGrams: "300",
+  widthCm: "11",
+  heightCm: "5",
+  lengthCm: "16",
   featured: false,
   active: true,
   variants: [],
@@ -177,6 +185,16 @@ export function ProductForm({ action, categories, canEditPrice, initial, submitL
             Somente Gerente ou Admin podem alterar preços. O valor atual será mantido.
           </p>
         )}</section>
+
+        <section className="rounded-xl2 border border-line bg-paper p-5 shadow-card">
+          <div className="mb-4"><p className="font-display text-lg font-semibold">Embalagem e frete</p><p className="text-xs text-ink-muted">Medidas do produto já embalado, usadas na cotação real das transportadoras.</p></div>
+          <div className="grid gap-4 sm:grid-cols-4">
+            <label className="flex flex-col gap-1.5"><span className="text-sm font-medium">Peso (gramas)</span><input name="weightGrams" type="number" min="1" max="30000" defaultValue={init.weightGrams} required className="h-11 rounded-xl border border-line px-3 text-sm" /><FieldError errors={fe.weightGrams} /></label>
+            <label className="flex flex-col gap-1.5"><span className="text-sm font-medium">Largura (cm)</span><input name="widthCm" type="number" min="1" max="200" defaultValue={init.widthCm} required className="h-11 rounded-xl border border-line px-3 text-sm" /><FieldError errors={fe.widthCm} /></label>
+            <label className="flex flex-col gap-1.5"><span className="text-sm font-medium">Altura (cm)</span><input name="heightCm" type="number" min="1" max="200" defaultValue={init.heightCm} required className="h-11 rounded-xl border border-line px-3 text-sm" /><FieldError errors={fe.heightCm} /></label>
+            <label className="flex flex-col gap-1.5"><span className="text-sm font-medium">Comprimento (cm)</span><input name="lengthCm" type="number" min="1" max="200" defaultValue={init.lengthCm} required className="h-11 rounded-xl border border-line px-3 text-sm" /><FieldError errors={fe.lengthCm} /></label>
+          </div>
+        </section>
 
         {/* Variações */}
         <div className="rounded-xl2 border border-line bg-paper p-5 shadow-card">

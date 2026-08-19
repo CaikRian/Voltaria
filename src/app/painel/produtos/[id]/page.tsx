@@ -38,6 +38,10 @@ export default async function EditarProdutoPage({ params }: { params: Params }) 
     imageUrl: product.imageUrl,
     gallery: (() => { try { const value = JSON.parse(product.gallery ?? "[]"); return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; } catch { return []; } })(),
     stock: String(product.stock),
+    weightGrams: String(product.weightGrams),
+    widthCm: String(product.widthCm),
+    heightCm: String(product.heightCm),
+    lengthCm: String(product.lengthCm),
     featured: product.featured,
     active: product.active,
     variants: product.variants.map((v) => ({

@@ -95,6 +95,10 @@ function parseForm(formData: FormData) {
     imageUrl: formData.get("imageUrl"),
     gallery,
     stock: formData.get("stock") ?? 0,
+    weightGrams: formData.get("weightGrams"),
+    widthCm: formData.get("widthCm"),
+    heightCm: formData.get("heightCm"),
+    lengthCm: formData.get("lengthCm"),
     featured: formData.get("featured") === "on",
     active: formData.get("active") === "on",
     variants,
@@ -127,6 +131,10 @@ export async function createProduct(
         imageUrl: d.imageUrl,
         gallery: d.gallery.length ? JSON.stringify(d.gallery) : null,
         stock: d.stock,
+        weightGrams: d.weightGrams,
+        widthCm: d.widthCm,
+        heightCm: d.heightCm,
+        lengthCm: d.lengthCm,
         featured: d.featured,
         active: d.active,
         variants: d.variants.length
@@ -205,6 +213,8 @@ export async function updateProduct(
   addChange(changes, "image", "Imagem principal", existing.imageUrl, d.imageUrl);
   addChange(changes, "gallery", "Galeria", gallerySummary(existing.gallery), gallerySummary(nextGallery));
   addChange(changes, "stock", "Estoque simples", `${existing.stock} un.`, `${d.stock} un.`);
+  addChange(changes, "weight", "Peso", `${existing.weightGrams} g`, `${d.weightGrams} g`);
+  addChange(changes, "dimensions", "Dimensões", `${existing.widthCm}×${existing.heightCm}×${existing.lengthCm} cm`, `${d.widthCm}×${d.heightCm}×${d.lengthCm} cm`);
   addChange(changes, "active", "Visibilidade", existing.active ? "Ativo" : "Inativo", d.active ? "Ativo" : "Inativo");
   addChange(changes, "featured", "Destaque", existing.featured ? "Sim" : "Não", d.featured ? "Sim" : "Não");
   addChange(changes, "variants", "Variações", variantSummary(existing.variants), variantSummary(nextVariants));
@@ -240,6 +250,10 @@ export async function updateProduct(
           imageUrl: d.imageUrl,
           gallery: d.gallery.length ? JSON.stringify(d.gallery) : null,
           stock: d.stock,
+          weightGrams: d.weightGrams,
+          widthCm: d.widthCm,
+          heightCm: d.heightCm,
+          lengthCm: d.lengthCm,
           featured: d.featured,
           active: d.active,
           variants: d.variants.length

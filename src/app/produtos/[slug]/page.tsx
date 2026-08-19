@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth-helpers";
 import { Price } from "@/components/ui/Price";
 import { AddToCart } from "@/components/AddToCart";
 import { ProductCard } from "@/components/ProductCard";
-import { ShippingCalculator } from "@/components/ShippingCalculator";
+import { RealShippingCalculator } from "@/components/RealShippingCalculator";
 import { discountPercent, formatBRL } from "@/lib/format";
 import { ReviewsSection } from "./ReviewsSection";
 import { QuestionsSection } from "./QuestionsSection";
@@ -135,7 +135,7 @@ export default async function ProductPage({ params }: { params: Params }) {
           </div>
 
           <div className="mt-5 border-t border-line pt-5">
-            <ShippingCalculator subtotalCents={product.priceCents} />
+            <RealShippingCalculator items={[{ productId: product.id, qty: 1 }]} />
           </div>
         </div>
       </div>

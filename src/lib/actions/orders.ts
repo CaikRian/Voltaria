@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { requireCapability, getCurrentUser, requireUser } from "@/lib/auth-helpers";
 import { can } from "@/lib/permissions";
 import { getProductsByIds } from "@/lib/products";
-import { resolveShippingCents } from "@/lib/shipping";
+import { resolveRealShipping } from "@/lib/shipping-real";
 import { mpClient } from "@/lib/mercadopago";
 import { updateOrderStatus } from "@/lib/orders";
 import { isValidStatusTransition, type OrderStatus } from "@/lib/order-status";
@@ -93,7 +93,7 @@ export async function createOrderAction(
   // Recálculo autoritativo de frete a partir do CEP + opção escolhida. Nunca
   // confiar em preço de frete vindo do client — mesmo princípio do recálculo de
   // preço de item acima (via getProductsByIds).
-  const resolved = resolveShippingCents(d.cep, itemsTotalCents, d.shippingOptionId);
+  const resolved = await resolveRealShipping(d.cep, orderItemsData.map((item) => ({ productId: item.productId, qty: item.qty })), d.shippingOptionId);
   if (!resolved) return { error: "Não foi possível calcular o frete para o CEP informado." };
   const shippingCents = resolved.cents;
   const totalCents = itemsTotalCents + shippingCents;
@@ -131,6 +131,8 @@ export async function createOrderAction(
       shipState: d.state,
       shippingCents,
       shippingMethod: `${resolved.option.label} — ${resolved.option.etaLabel}`,
+      shippingProvider: "MELHOR_ENVIO",
+      shippingServiceId: resolved.option.serviceId,
         },
       });
     });

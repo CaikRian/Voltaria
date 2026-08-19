@@ -1,5 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { updateOrderStatus } from "@/lib/orders";
 
 export const runtime = "nodejs";
 
@@ -28,11 +30,28 @@ export async function POST(request: NextRequest) {
 
   try {
     const payload = rawBody ? JSON.parse(rawBody) : {};
+    const labelId = typeof payload?.data?.id === "string" ? payload.data.id : null;
     console.info("[Melhor Envio] Webhook recebido", {
       event: payload?.event ?? "test",
-      labelId: payload?.data?.id ?? null,
+      labelId,
       status: payload?.data?.status ?? null,
     });
+    if (labelId) {
+      const order = await prisma.order.findUnique({ where: { melhorEnvioOrderId: labelId } });
+      if (order) {
+        const trackingCode = typeof payload.data.tracking === "string" ? payload.data.tracking : undefined;
+        const trackingUrl = typeof payload.data.tracking_url === "string" ? payload.data.tracking_url.replace("https: //", "https://") : undefined;
+        const orderData = { ...(trackingCode ? { trackingCode } : {}), ...(trackingUrl ? { trackingUrl } : {}) };
+        if (payload.event === "order.posted" && ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO"].includes(order.status)) {
+          if (order.status === "PAGAMENTO_APROVADO") await updateOrderStatus(order.id, order.status, "PREPARANDO_ENVIO", { note: "Etiqueta liberada pela transportadora", orderData });
+          await updateOrderStatus(order.id, "PREPARANDO_ENVIO", "ENVIADO", { note: "Objeto postado na transportadora", orderData });
+        } else if (payload.event === "order.delivered" && order.status === "ENVIADO") {
+          await updateOrderStatus(order.id, order.status, "ENTREGUE", { note: "Entrega confirmada pela transportadora", orderData });
+        } else {
+          await prisma.order.update({ where: { id: order.id }, data: orderData });
+        }
+      }
+    }
   } catch {
     // O teste de cadastro pode não carregar um evento completo. O endpoint só
     // confirma o recebimento; eventos reais serão JSON assinado.

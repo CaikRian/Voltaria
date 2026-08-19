@@ -3,7 +3,7 @@
 import { startTransition, useActionState, useEffect, useState } from "react";
 import { useCart } from "@/store/cart";
 import { createOrderAction, type CheckoutFormState } from "@/lib/actions/orders";
-import { getShippingOptions, type ShippingOptionId } from "@/lib/shipping";
+import type { RealShippingOption } from "@/lib/shipping-real";
 import { lookupCep } from "@/lib/cep";
 import type { getAddressesByUser } from "@/lib/addresses";
 import { CheckoutSummary } from "./CheckoutSummary";
@@ -49,7 +49,9 @@ export function CheckoutForm({ contactDefaults, addresses, isLoggedIn }: Props) 
   );
   const [newAddress, setNewAddress] = useState<AddressFields>(emptyAddress);
   const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "found" | "notfound">("idle");
-  const [shippingOptionId, setShippingOptionId] = useState<ShippingOptionId | null>(null);
+  const [shippingOptionId, setShippingOptionId] = useState<string | null>(null);
+  const [shippingOptions, setShippingOptions] = useState<RealShippingOption[]>([]);
+  const [shippingStatus, setShippingStatus] = useState<"idle" | "loading" | "error">("idle");
   const [saveAddress, setSaveAddress] = useState(false);
   const [addressLabel, setAddressLabel] = useState("");
 
@@ -70,21 +72,36 @@ export function CheckoutForm({ contactDefaults, addresses, isLoggedIn }: Props) 
         : null;
 
   const cartTotal = totalCents();
-  const shippingOptions = effectiveAddress ? getShippingOptions(effectiveAddress.cep, cartTotal) : null;
+  const cartItemsKey = JSON.stringify(items.map((item) => ({ productId: item.productId, qty: item.qty })));
 
   // Reseta/auto-seleciona a opção de frete sempre que o CEP efetivo muda (troca
   // de endereço salvo, edição do CEP novo, ou carrinho muda de valor e deixa de
   // bater o frete grátis) — evita ficar com uma opção de um cálculo antigo.
   useEffect(() => {
-    if (!shippingOptions) {
+    const cep = effectiveAddress?.cep.replace(/\D/g, "") ?? "";
+    if (cep.length !== 8 || items.length === 0) {
+      setShippingOptions([]);
       setShippingOptionId(null);
       return;
     }
-    setShippingOptionId((current) =>
-      current && shippingOptions.some((o) => o.id === current) ? current : shippingOptions[0].id
-    );
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setShippingStatus("loading");
+      try {
+        const response = await fetch("/api/frete/cotacao", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cep, items: JSON.parse(cartItemsKey) }), signal: controller.signal });
+        const data = await response.json();
+        if (!response.ok || !Array.isArray(data.options)) throw new Error(data.error);
+        setShippingOptions(data.options);
+        setShippingOptionId((current) => current && data.options.some((option: RealShippingOption) => option.id === current) ? current : data.options[0]?.id ?? null);
+        setShippingStatus("idle");
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setShippingOptions([]); setShippingOptionId(null); setShippingStatus("error");
+      }
+    }, 350);
+    return () => { window.clearTimeout(timer); controller.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveAddress?.cep, cartTotal]);
+  }, [effectiveAddress?.cep, cartItemsKey]);
 
   async function handleCepBlur() {
     if (addressMode !== "new") return;
@@ -330,7 +347,9 @@ export function CheckoutForm({ contactDefaults, addresses, isLoggedIn }: Props) 
             </div>
           )}
 
-          {shippingOptions && (
+          {shippingStatus === "loading" && <p className="mt-6 text-sm text-ink-muted">Consultando Correios e transportadoras...</p>}
+          {shippingStatus === "error" && <p className="mt-6 rounded-xl bg-red-50 p-3 text-sm text-red-700">Não foi possível calcular o frete agora. Confira a integração e tente novamente.</p>}
+          {shippingOptions.length > 0 && (
             <div className="mt-6">
               <p className="mb-2 text-sm font-medium">Opção de frete</p>
               <div className="flex flex-col gap-2">
@@ -349,7 +368,7 @@ export function CheckoutForm({ contactDefaults, addresses, isLoggedIn }: Props) 
                         onChange={() => setShippingOptionId(o.id)}
                       />
                       <span>
-                        <span className="font-medium">{o.label}</span>
+                        <span className="font-medium">{o.company} · {o.label}</span>
                         <br />
                         <span className="text-ink-muted">{o.etaLabel}</span>
                       </span>

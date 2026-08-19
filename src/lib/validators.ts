@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { SHIPPING_OPTION_IDS } from "@/lib/shipping";
 import { ORDER_STATUS } from "@/lib/order-status";
 
 export const loginSchema = z.object({
@@ -127,6 +126,10 @@ export const productSchema = z.object({
   imageUrl: z.string().url("Informe uma URL de imagem válida"),
   gallery: z.array(z.string().url("Uma das imagens adicionais possui URL inválida")).max(8, "Use no máximo 8 imagens adicionais").default([]),
   stock: z.coerce.number().int().nonnegative().default(0),
+  weightGrams: z.coerce.number().int().min(1).max(30000),
+  widthCm: z.coerce.number().int().min(1).max(200),
+  heightCm: z.coerce.number().int().min(1).max(200),
+  lengthCm: z.coerce.number().int().min(1).max(200),
   featured: z.boolean().default(false),
   active: z.boolean().default(true),
   variants: z.array(variantSchema).default([]),
@@ -181,9 +184,7 @@ export const checkoutSchema = z.object({
     .trim()
     .length(2, "UF inválida")
     .transform((v) => v.toUpperCase()),
-  shippingOptionId: z.enum(SHIPPING_OPTION_IDS, {
-    errorMap: () => ({ message: "Selecione uma opção de frete" }),
-  }),
+  shippingOptionId: z.string().regex(/^melhor-envio:\d+$/, "Selecione uma opção de frete válida"),
   saveAddress: z.coerce.boolean().optional().default(false),
   addressLabel: z.string().trim().max(40).optional().or(z.literal("")),
   items: z.array(checkoutItemSchema).min(1, "Seu carrinho está vazio"),

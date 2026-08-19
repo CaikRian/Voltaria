@@ -18,6 +18,7 @@ export function SellerDashboard({ name, role, summary }: { name?: string | null;
     { title: "Novo produto", desc: "Adicionar item ao catálogo", href: "/painel/produtos/novo", need: "product:create" as const, icon: "+" },
     { title: "Gerenciar estoque", desc: `${summary.lowStockCount} item(ns) com estoque baixo`, href: "/painel/produtos", need: "product:update" as const, icon: "▦" },
     { title: "Atualizar pedidos", desc: "Status, envio e rastreamento", href: "/painel/pedidos", need: "order:update:status" as const, icon: "→" },
+    { title: "Conectar Melhor Envio", desc: "Autorizar fretes e rastreamento", href: "/api/integracoes/melhor-envio/autorizar", need: "order:update:status" as const, icon: "↗" },
     { title: "Responder dúvidas", desc: `${summary.unansweredQuestions} aguardando resposta`, href: "/painel/duvidas", need: "question:answer" as const, icon: "?" },
   ].filter((item) => can(role, item.need));
 
