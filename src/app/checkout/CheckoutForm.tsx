@@ -75,8 +75,8 @@ export function CheckoutForm({ contactDefaults, addresses, isLoggedIn }: Props) 
   const cartItemsKey = JSON.stringify(items.map((item) => ({ productId: item.productId, qty: item.qty })));
 
   // Reseta/auto-seleciona a opção de frete sempre que o CEP efetivo muda (troca
-  // de endereço salvo, edição do CEP novo, ou carrinho muda de valor e deixa de
-  // bater o frete grátis) — evita ficar com uma opção de um cálculo antigo.
+  // de endereço salvo ou alteração dos itens do carrinho — evita manter uma
+  // cotação antiga selecionada.
   useEffect(() => {
     const cep = effectiveAddress?.cep.replace(/\D/g, "") ?? "";
     if (cep.length !== 8 || items.length === 0) {

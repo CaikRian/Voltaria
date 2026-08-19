@@ -23,7 +23,7 @@ export default async function HomePage() {
         <div className="container-x relative grid gap-10 py-14 lg:grid-cols-[1fr_0.9fr] lg:items-center lg:py-20">
           <div className="max-w-2xl">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur">
-              <span className="h-2 w-2 rounded-full bg-ok" /> Frete grátis acima de R$ 299
+              <span className="h-2 w-2 rounded-full bg-ok" /> Frete calculado pelas transportadoras
             </span>
             <h1 className="mt-5 font-display text-4xl font-bold leading-[1.08] tracking-tight sm:text-6xl">
               Produtos que facilitam sua rotina e{" "}<span className="text-[#E0A8FF]">cabem no seu bolso.</span>

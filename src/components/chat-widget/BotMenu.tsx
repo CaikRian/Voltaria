@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
-import { getShippingOptions, normalizeCep, FREE_SHIPPING_THRESHOLD_CENTS } from "@/lib/shipping";
+import { getShippingOptions, normalizeCep } from "@/lib/shipping";
 import { formatBRL } from "@/lib/format";
 
 type Bubble = { id: string; from: "bot" | "user"; node: React.ReactNode };
@@ -229,7 +229,7 @@ function PromocoesAnswer({ featured }: { featured: Contexto["featured"] }) {
   const discounted = featured.filter((p) => p.compareCents && p.compareCents > p.priceCents);
   return (
     <div className="space-y-2">
-      <p>Frete Econômico grátis em compras acima de <strong>{formatBRL(FREE_SHIPPING_THRESHOLD_CENTS)}</strong>! {discounted.length > 0 ? "E olha esses destaques com desconto:" : "Dá uma olhada nos destaques da loja:"}</p>
+      <p>{discounted.length > 0 ? "Olha esses destaques com desconto:" : "Dá uma olhada nos destaques da loja:"}</p>
       <ul className="space-y-1.5">
         {(discounted.length > 0 ? discounted : featured).map((p) => (
           <li key={p.slug}>
@@ -289,7 +289,7 @@ function FreteAnswer({ options }: { options: NonNullable<ReturnType<typeof getSh
           </li>
         ))}
       </ul>
-      <p className="text-xs text-ink-muted">Frete Econômico grátis em compras acima de {formatBRL(FREE_SHIPPING_THRESHOLD_CENTS)}.</p>
+      <p className="text-xs text-ink-muted">O valor final é calculado pela transportadora no checkout.</p>
     </div>
   );
 }

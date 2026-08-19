@@ -3,12 +3,6 @@
 // esses campos). Região = 1º dígito do CEP, mesmo agrupamento usado pelos Correios.
 // Função pura: mesmo cálculo roda no client (preview) e no server (autoritativo).
 
-export const FREE_SHIPPING_THRESHOLD_CENTS = 29900; // R$299,00 — mesmo valor da home (src/app/page.tsx)
-
-// Decisão de produto: o frete grátis acima do limite zera SÓ o Econômico.
-// O Expresso continua pago (padrão comum de mercado — dá sentido a existir
-// uma opção paga mesmo em pedidos grandes). Pra zerar os dois, troque para true.
-const FREE_SHIPPING_APPLIES_TO_ALL_OPTIONS = false;
 
 export const SHIPPING_OPTION_IDS = ["economico", "expresso"] as const;
 export type ShippingOptionId = (typeof SHIPPING_OPTION_IDS)[number];
@@ -116,22 +110,20 @@ export function getShippingOptions(cep: string, subtotalCents: number): Shipping
   const rule = REGIONS[digits[0]];
   if (!rule) return null; // defensivo — 0-9 cobre todos os dígitos possíveis
 
-  const qualifiesFree = subtotalCents > 0 && subtotalCents >= FREE_SHIPPING_THRESHOLD_CENTS;
-
   return [
     {
       id: "economico",
       label: "Econômico",
       etaLabel: rule.economicoEta,
-      priceCents: qualifiesFree ? 0 : rule.economicoCents,
-      free: qualifiesFree,
+      priceCents: rule.economicoCents,
+      free: false,
     },
     {
       id: "expresso",
       label: "Expresso",
       etaLabel: rule.expressoEta,
-      priceCents: qualifiesFree && FREE_SHIPPING_APPLIES_TO_ALL_OPTIONS ? 0 : rule.expressoCents,
-      free: qualifiesFree && FREE_SHIPPING_APPLIES_TO_ALL_OPTIONS,
+      priceCents: rule.expressoCents,
+      free: false,
     },
   ];
 }

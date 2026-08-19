@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { melhorEnvioFetch } from "@/lib/melhor-envio";
-import { FREE_SHIPPING_THRESHOLD_CENTS, normalizeCep } from "@/lib/shipping";
+import { normalizeCep } from "@/lib/shipping";
 
 export type RealShippingOption = { id: string; serviceId: string; label: string; company: string; etaLabel: string; priceCents: number; originalPriceCents: number; free: boolean };
 export type ShippingCartItem = { productId: string; qty: number };
@@ -14,7 +14,6 @@ export async function getRealShippingOptions(cep: string, items: ShippingCartIte
   const ids = [...new Set(items.map((item) => item.productId))];
   const products = await prisma.product.findMany({ where: { id: { in: ids }, active: true }, select: { id: true, priceCents: true, weightGrams: true, widthCm: true, heightCm: true, lengthCm: true } });
   if (products.length !== ids.length) return [];
-  const subtotalCents = items.reduce((sum, item) => sum + products.find((product) => product.id === item.productId)!.priceCents * item.qty, 0);
   const response = await melhorEnvioFetch("/api/v2/me/shipment/calculate", {
     method: "POST",
     body: JSON.stringify({
@@ -31,7 +30,6 @@ export async function getRealShippingOptions(cep: string, items: ShippingCartIte
     const cents = Math.round(price * 100);
     return [{ id: `melhor-envio:${quote.id}`, serviceId: String(quote.id), label: quote.name ?? `Serviço ${quote.id}`, company: quote.company?.name ?? "Transportadora", etaLabel: `${days} dia${days === 1 ? " útil" : "s úteis"}`, priceCents: cents, originalPriceCents: cents, free: false }];
   }).sort((a, b) => a.priceCents - b.priceCents);
-  if (subtotalCents >= FREE_SHIPPING_THRESHOLD_CENTS && options[0]) options[0] = { ...options[0], priceCents: 0, free: true };
   return options;
 }
 
