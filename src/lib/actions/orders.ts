@@ -13,6 +13,7 @@ import { updateOrderStatus } from "@/lib/orders";
 import { isValidStatusTransition, type OrderStatus } from "@/lib/order-status";
 import { checkoutSchema, orderStatusSchema, type CheckoutInput } from "@/lib/validators";
 import { InsufficientStockError, reserveStock } from "@/lib/inventory";
+import { cleanupAbandonedOrders } from "@/lib/cleanup-orders";
 
 export type CheckoutFormState = {
   error?: string;
@@ -31,6 +32,15 @@ export async function createOrderAction(
   const parsed = checkoutSchema.safeParse(input);
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
   const d = parsed.data;
+
+  // O plano Hobby da Vercel executa o cron apenas uma vez ao dia. Antes de uma
+  // nova tentativa de compra, libera também as reservas vencidas sob demanda,
+  // evitando falso "sem estoque" até a próxima execução diária.
+  try {
+    await cleanupAbandonedOrders();
+  } catch (error) {
+    console.error("Falha na limpeza oportunista de reservas:", error);
+  }
 
   // 1) Busca preço/estoque autoritativos — nunca confia no carrinho do client.
   const productIds = [...new Set(d.items.map((i) => i.productId))];

@@ -7,7 +7,7 @@
  * {
  *   "crons": [{
  *     "path": "/api/cron/cleanup-orders",
- *     "schedule": "0,10,20,30,40,50 * * * *"  // a cada dez minutos
+ *     "schedule": "0 3 * * *"  // diariamente no plano Hobby
  *   }]
  * }
  * 
