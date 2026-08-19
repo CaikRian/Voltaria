@@ -6,7 +6,7 @@ import { useChatAction } from "./useChatAction";
 
 type Message = { id: string; senderRole: string; text: string; createdAt: string };
 
-export function LiveChatThread({ sessionId, visitorId }: { sessionId: string; visitorId: string }) {
+export function LiveChatThread({ sessionId, visitorId, onExit }: { sessionId: string; visitorId: string; onExit: () => void }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [closed, setClosed] = useState(false);
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
@@ -75,7 +75,12 @@ export function LiveChatThread({ sessionId, visitorId }: { sessionId: string; vi
             </div>
           );
         })}
-        {closed && <p className="text-center text-xs text-ink-muted">Conversa encerrada pela equipe.</p>}
+        {closed && (
+          <div className="flex flex-col items-center gap-3 py-3 text-center">
+            <p className="text-xs text-ink-muted">Conversa encerrada pela equipe.</p>
+            <button onClick={onExit} className="rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white shadow-card hover:bg-brand-dark">← Voltar ao início</button>
+          </div>
+        )}
       </div>
       {!closed && (
         <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-1 border-t border-line p-3">

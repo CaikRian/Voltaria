@@ -14,7 +14,7 @@ import { LiveChatThread } from "./LiveChatThread";
 export function ChatWidget() {
   const pathname = usePathname();
   const { data: authSession } = useSession();
-  const { isOpen, sessionId, unread, close, toggle, setSession, setUnread } = useChatWidget();
+  const { isOpen, sessionId, unread, close, toggle, setSession, clearSession, setUnread } = useChatWidget();
   const [visitorId, setVisitorId] = useState<string | null>(null);
   const [escalating, setEscalating] = useState(false);
 
@@ -66,7 +66,7 @@ export function ChatWidget() {
           </div>
           <div className="flex-1 overflow-hidden">
             {sessionId ? (
-              <LiveChatThread sessionId={sessionId} visitorId={visitorId} />
+              <LiveChatThread sessionId={sessionId} visitorId={visitorId} onExit={clearSession} />
             ) : escalating ? (
               <EscalationForm
                 visitorId={visitorId}
