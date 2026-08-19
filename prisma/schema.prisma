@@ -115,6 +115,30 @@ model PasswordResetToken {
   @@index([expiresAt])
 }
 
+// Web analytics first-party, coletado somente após consentimento. Não armazena IP
+// nem dados pessoais; visitorId/sessionId são identificadores aleatórios anônimos.
+model WebsiteVisit {
+  id           String    @id
+  visitorId    String
+  sessionId    String
+  path         String
+  productId    String?
+  productName  String?
+  referrerHost String?
+  utmSource    String?
+  device       String
+  browser      String
+  durationMs   Int       @default(0)
+  startedAt    DateTime  @default(now())
+  endedAt      DateTime?
+
+  @@index([startedAt])
+  @@index([path, startedAt])
+  @@index([productId, startedAt])
+  @@index([visitorId, startedAt])
+  @@index([sessionId, startedAt])
+}
+
 // Endereços salvos do cliente — só pra usuários logados (checkout de convidado
 // nunca grava aqui). Um cliente pode ter vários (Casa, Trabalho...), um padrão.
 model Address {

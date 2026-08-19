@@ -35,7 +35,7 @@ export function CookiePreferencesForm() {
 
   return <div className="space-y-3">
     <Toggle checked disabled label="Cookies necessários" description="Mantêm login, carrinho, segurança e funções essenciais. Não podem ser desligados." />
-    <Toggle checked={analytics} onChange={(value) => { setAnalytics(value); setSaved(false); }} label="Medição e desempenho" description="Autoriza métricas de uso caso a loja adote uma ferramenta de análise." />
+    <Toggle checked={analytics} onChange={(value) => { setAnalytics(value); setSaved(false); }} label="Medição e desempenho" description="Autoriza métricas anônimas de páginas, produtos, origem, dispositivo e tempo de navegação para melhorarmos a loja." />
     <Toggle checked={marketing} onChange={(value) => { setMarketing(value); setSaved(false); }} label="Marketing personalizado" description="Autoriza personalização publicitária caso esse recurso seja adotado." />
     <button onClick={save} className="mt-2 inline-flex h-11 items-center rounded-xl bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-dark">Salvar preferências</button>
     {saved && <p role="status" className="text-sm font-medium text-emerald-700">Preferências salvas neste navegador.</p>}

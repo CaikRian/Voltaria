@@ -9,6 +9,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import { CookieConsent } from "@/components/CookiePreferences";
 import { Suspense } from "react";
+import { WebAnalyticsTracker } from "@/components/WebAnalyticsTracker";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 const display = Space_Grotesk({
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <Suspense fallback={null}>
             <NavigationProgress />
+            <WebAnalyticsTracker />
           </Suspense>
           <Header />
           <main className="flex-1">
