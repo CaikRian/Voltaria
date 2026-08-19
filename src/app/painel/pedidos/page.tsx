@@ -4,13 +4,18 @@ import { getAdminOrders } from "@/lib/admin";
 import { formatBRL } from "@/lib/format";
 import { ORDER_STATUS, STATUS_META } from "@/lib/order-status";
 import { OrderStatusBadge } from "@/components/OrderStatusBadge";
+import { OrdersDashboard } from "./OrdersDashboard";
 
 export const metadata: Metadata = { title: "Pedidos · Painel" };
 
-type SearchParams = Promise<{ q?: string; status?: string }>;
+type SearchParams = Promise<{ q?: string; status?: string; chat?: string; payment?: string; sort?: string; page?: string; pageSize?: string }>;
 
 export default async function PainelPedidosPage({ searchParams }: { searchParams: SearchParams }) {
-  const { q, status } = await searchParams;
+  const allFilters = await searchParams;
+  return <OrdersDashboard filters={allFilters} />;
+  /* Página antiga mantida temporariamente abaixo apenas como referência estrutural.
+     O retorno acima usa a nova central. */
+  const { q, status } = allFilters;
   const orders = await getAdminOrders({ q, status });
 
   const tabs = [

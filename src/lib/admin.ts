@@ -27,16 +27,63 @@ export async function getCategoriesForSelect() {
   });
 }
 
-export async function getAdminOrders(opts?: { status?: string; q?: string }) {
-  return prisma.order.findMany({
-    where: {
-      ...(opts?.status ? { status: opts.status } : {}),
-      ...(opts?.q
-        ? { OR: [{ id: { contains: opts.q } }, { email: { contains: opts.q } }] }
-        : {}),
-    },
-    include: { _count: { select: { items: true } }, messages: { orderBy: { createdAt: "desc" }, take: 1 } },
-    orderBy: { createdAt: "desc" },
+export async function getAdminOrders(opts?: {
+  status?: string;
+  q?: string;
+  chat?: "all" | "open" | "waiting_staff" | "waiting_client" | "closed" | "none";
+  payment?: "all" | "paid" | "pending";
+  sort?: "newest" | "oldest" | "highest" | "updated";
+  page?: number;
+  pageSize?: number;
+}) {
+  const pageSize = Math.min(Math.max(opts?.pageSize ?? 10, 5), 50);
+  const page = Math.max(opts?.page ?? 1, 1);
+  const paidStatuses = ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO", "ENVIADO", "ENTREGUE"];
+  const where = {
+    ...(opts?.status ? { status: opts.status } : {}),
+    ...(opts?.q ? { OR: [{ id: { contains: opts.q } }, { email: { contains: opts.q } }, { shipName: { contains: opts.q } }] } : {}),
+    ...(opts?.chat === "open" ? { messages: { some: {} }, chatClosedAt: null }
+      : opts?.chat === "waiting_staff" ? { awaitingReplyFrom: "STAFF", chatClosedAt: null }
+      : opts?.chat === "waiting_client" ? { awaitingReplyFrom: "CLIENTE", chatClosedAt: null }
+      : opts?.chat === "closed" ? { chatClosedAt: { not: null } }
+      : opts?.chat === "none" ? { messages: { none: {} } }
+      : {}),
+    ...(!opts?.status && opts?.payment === "paid" ? { status: { in: paidStatuses } }
+      : !opts?.status && opts?.payment === "pending" ? { status: { in: ["AGUARDANDO_PAGAMENTO", "PAGAMENTO_RECUSADO"] } }
+      : {}),
+  };
+  const orderBy = opts?.sort === "oldest" ? { createdAt: "asc" as const }
+    : opts?.sort === "highest" ? { totalCents: "desc" as const }
+    : opts?.sort === "updated" ? { updatedAt: "desc" as const }
+    : { createdAt: "desc" as const };
+  const [orders, total, waitingStaff, openChats] = await Promise.all([
+    prisma.order.findMany({
+      where,
+      select: {
+        id: true, email: true, shipName: true, shipCity: true, shipState: true,
+        totalCents: true, status: true, createdAt: true, updatedAt: true,
+        mpPaymentMethod: true, awaitingReplyFrom: true, chatClosedAt: true,
+        _count: { select: { items: true, messages: true } },
+        messages: { orderBy: { createdAt: "desc" }, take: 1, select: { text: true, senderRole: true, createdAt: true } },
+      },
+      orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.order.count({ where }),
+    prisma.order.count({ where: { awaitingReplyFrom: "STAFF", chatClosedAt: null } }),
+    prisma.order.count({ where: { messages: { some: {} }, chatClosedAt: null } }),
+  ]);
+  // Mantém compatibilidade com consumidores antigos que tratavam o retorno como lista,
+  // enquanto expõe os metadados usados pela nova central paginada.
+  return Object.assign(orders, {
+    orders,
+    total,
+    page,
+    pageSize,
+    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+    waitingStaff,
+    openChats,
   });
 }
 

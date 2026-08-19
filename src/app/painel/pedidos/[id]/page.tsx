@@ -25,9 +25,19 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
   const action = updateOrderStatusAction.bind(null, order.id);
   const trackingUrl = resolveTrackingUrl(order.trackingCode, order.trackingUrl);
 
-  const timeline = [...order.statusEvents, ...order.messages].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-  );
+  // O chat possui sua própria área completa. O histórico operacional mostra somente
+  // eventos do fluxo do pedido, evitando misturar conversa com logística.
+  const timeline = order.statusEvents;
+  const customerMessages = order.messages.filter((message) => message.senderRole === "CLIENTE");
+  const staffMessages = order.messages.filter((message) => message.senderRole !== "CLIENTE");
+  const lastMessage = order.messages.at(-1);
+  const chatState = order.messages.length === 0
+    ? { label: "Não iniciado", description: "O cliente ainda não abriu uma conversa.", color: "bg-slate-100 text-slate-700" }
+    : order.chatClosedAt
+      ? { label: "Encerrado", description: "Atendimento finalizado pela equipe.", color: "bg-slate-100 text-slate-700" }
+      : order.awaitingReplyFrom === "STAFF"
+        ? { label: "Aguardando equipe", description: "O cliente enviou a última mensagem.", color: "bg-amber-100 text-amber-800" }
+        : { label: "Aguardando cliente", description: "A equipe já respondeu e aguarda retorno.", color: "bg-blue-100 text-blue-800" };
 
   const highlights = [
     {
@@ -78,6 +88,14 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
         ))}
       </div>
 
+      <section className="grid gap-4 rounded-xl2 border border-line bg-paper p-5 shadow-card lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div className="flex items-start gap-4">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand-soft text-xl text-brand">💬</span>
+          <div><div className="flex flex-wrap items-center gap-2"><h3 className="font-display text-lg font-semibold">Atividade do atendimento</h3><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${chatState.color}`}>{chatState.label}</span></div><p className="mt-1 text-sm text-ink-muted">{chatState.description}</p>{lastMessage && <p className="mt-2 line-clamp-1 text-xs text-ink-soft">Última mensagem em {new Date(lastMessage.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</p>}</div>
+        </div>
+        <div className="flex items-center gap-2 text-center"><div className="rounded-xl bg-mist px-4 py-2"><strong className="block text-lg">{customerMessages.length}</strong><span className="text-[10px] uppercase tracking-wide text-ink-muted">Cliente</span></div><div className="rounded-xl bg-mist px-4 py-2"><strong className="block text-lg">{staffMessages.length}</strong><span className="text-[10px] uppercase tracking-wide text-ink-muted">Equipe</span></div><a href="#chat" className="rounded-xl bg-brand px-4 py-3 text-xs font-bold text-white hover:bg-brand-dark">Abrir conversa ↓</a></div>
+      </section>
+
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex flex-col gap-5">
           <div className="rounded-xl2 border border-line bg-paper p-5 shadow-card">
@@ -117,35 +135,19 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
           </div>
 
           <div className="rounded-xl2 border border-line bg-paper p-5 shadow-card">
-            <div className="mb-4"><p className="font-display text-lg font-semibold">Histórico operacional</p><p className="text-xs text-ink-muted">Status e mensagens em ordem cronológica</p></div>
-            <ul className="flex flex-col gap-4 text-sm">
-              {timeline.map((event) => {
-                const isMessage = "senderRole" in event;
-                return (
-                  <li key={event.id} className="relative flex items-start gap-3 rounded-xl border border-line bg-mist/60 p-3 transition hover:border-brand/30 hover:bg-brand-soft/20">
-                    {isMessage ? (
-                      <span className={`mt-0.5 inline-flex rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
-                        event.senderRole === "CLIENTE"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-brand-soft text-brand"
-                      }`}>
-                        {event.senderRole === "CLIENTE" ? "Cliente" : "Equipe"}
-                      </span>
-                    ) : (
-                      <OrderStatusBadge status={event.status} />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-ink-soft">{new Date(event.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</p>
-                      {isMessage ? (
-                        <p className="mt-1 whitespace-pre-wrap text-ink-soft">{event.text}</p>
-                      ) : (
-                        <p className="mt-1 text-ink-muted">{event.note || "Atualização de status"}</p>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="mb-5 flex items-start justify-between gap-3"><div><p className="font-display text-lg font-semibold">Histórico operacional</p><p className="text-xs text-ink-muted">Somente mudanças do pedido, separadas das conversas</p></div><span className="rounded-full bg-mist px-3 py-1 text-xs font-bold text-ink-soft">{timeline.length} atualização(ões)</span></div>
+            <ol className="relative ml-3 border-l-2 border-line pl-7 text-sm">
+              {timeline.map((event, index) => (
+                <li key={event.id} className="relative pb-7 last:pb-0">
+                  <span className={`absolute -left-[2.18rem] top-0 grid h-4 w-4 place-items-center rounded-full border-4 border-white ${index === timeline.length - 1 ? "bg-brand ring-4 ring-brand-soft" : "bg-slate-300"}`} />
+                  <div className={`rounded-xl border p-4 transition ${index === timeline.length - 1 ? "border-brand/30 bg-brand-soft/20" : "border-line bg-mist/40"}`}>
+                    <div className="flex flex-wrap items-center justify-between gap-2"><OrderStatusBadge status={event.status} /><time className="text-xs font-medium text-ink-muted">{new Date(event.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}</time></div>
+                    <p className="mt-2 text-sm text-ink-soft">{event.note || (index === 0 ? "Pedido registrado no sistema." : "Etapa do pedido atualizada pela operação.")}</p>
+                    {index === timeline.length - 1 && <p className="mt-2 text-[10px] font-bold uppercase tracking-[.14em] text-brand">Estado atual</p>}
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
         </div>
 
