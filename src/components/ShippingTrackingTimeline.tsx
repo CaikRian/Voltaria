@@ -1,3 +1,8 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
 type Event = { id: string; title: string; description: string | null; needsAttention: boolean; occurredAt: Date | string; providerStatus: string | null };
 
 export function ShippingTrackingTimeline({ events, trackingCode, trackingUrl, needsAttention = false }: { events: Event[]; trackingCode?: string | null; trackingUrl?: string | null; needsAttention?: boolean }) {
@@ -13,7 +18,3 @@ export function ShippingTrackingTimeline({ events, trackingCode, trackingUrl, ne
     <ol className="relative mt-5 ml-2 border-l-2 border-line pl-6">{events.map((event, index) => <li key={event.id} className="relative pb-5 last:pb-0"><span className={`absolute -left-[1.95rem] top-0 h-3.5 w-3.5 rounded-full ring-4 ring-white ${event.needsAttention ? "bg-amber-500" : index === events.length - 1 ? "bg-brand" : "bg-slate-300"}`} /><div className="flex flex-wrap justify-between gap-2"><p className="text-sm font-bold">{event.title}</p><time className="text-xs text-ink-muted">{new Date(event.occurredAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}</time></div>{event.description && <p className="mt-1 text-xs text-ink-soft">{event.description}</p>}</li>)}</ol>
   </section>;
 }
-"use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
