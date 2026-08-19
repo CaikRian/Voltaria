@@ -205,4 +205,5 @@ export async function deleteProduct(id: string) {
   await prisma.product.delete({ where: { id } }); // variações caem em cascata
   revalidatePath("/painel/produtos");
   revalidatePath("/produtos");
+  redirect("/painel/produtos");
 }

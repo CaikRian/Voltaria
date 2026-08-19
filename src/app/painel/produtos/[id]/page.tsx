@@ -7,6 +7,7 @@ import { can } from "@/lib/permissions";
 import { updateProduct } from "@/lib/actions/products";
 import { ProductForm, type ProductInitial } from "../ProductForm";
 import { formatBRL } from "@/lib/format";
+import { DeleteProductButton } from "../DeleteProductButton";
 
 export const metadata: Metadata = { title: "Editar produto · Painel" };
 
@@ -59,6 +60,15 @@ export default async function EditarProdutoPage({ params }: { params: Params }) 
         initial={initial}
         submitLabel="Salvar alterações"
       />
+
+      {can(user.role, "product:delete") && (
+        <section className="rounded-xl2 border border-red-200 bg-red-50/60 p-5 shadow-card">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div><p className="text-xs font-black uppercase tracking-[.16em] text-red-700">Zona de perigo</p><h2 className="mt-1 font-display text-lg font-semibold text-slate-900">Excluir este produto</h2><p className="mt-1 max-w-xl text-sm text-slate-600">A exclusão remove o produto e suas variações do catálogo. Esta ação é permanente e exige confirmação pelo nome.</p></div>
+            <DeleteProductButton id={product.id} name={product.name} />
+          </div>
+        </section>
+      )}
     </div>
   );
 }
