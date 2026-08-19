@@ -284,13 +284,61 @@ export async function getAdminOrder(id: string) {
   });
 }
 
-export async function getAdminReviews() {
-  return prisma.review.findMany({
-    include: {
-      user: { select: { name: true, email: true } },
-      product: { select: { name: true, slug: true } },
-    },
-    orderBy: { createdAt: "desc" },
+export async function getAdminReviews(opts?: {
+  q?: string;
+  rating?: number; // 1-5
+  visibility?: "all" | "visible" | "hidden";
+  sort?: "recent" | "oldest" | "highest" | "lowest";
+  page?: number;
+  pageSize?: number;
+}) {
+  const pageSize = Math.min(Math.max(opts?.pageSize ?? 10, 5), 50);
+  const page = Math.max(opts?.page ?? 1, 1);
+  const where = {
+    ...(opts?.rating ? { rating: opts.rating } : {}),
+    ...(opts?.visibility === "hidden" ? { hidden: true } : opts?.visibility === "visible" ? { hidden: false } : {}),
+    ...(opts?.q
+      ? {
+          OR: [
+            { comment: { contains: opts.q } },
+            { product: { name: { contains: opts.q } } },
+            { user: { name: { contains: opts.q } } },
+            { user: { email: { contains: opts.q } } },
+          ],
+        }
+      : {}),
+  };
+  const orderBy =
+    opts?.sort === "oldest" ? { createdAt: "asc" as const }
+      : opts?.sort === "highest" ? { rating: "desc" as const }
+      : opts?.sort === "lowest" ? { rating: "asc" as const }
+      : { createdAt: "desc" as const };
+
+  const [reviews, total, allStats, hiddenCount] = await Promise.all([
+    prisma.review.findMany({
+      where,
+      include: {
+        user: { select: { name: true, email: true } },
+        product: { select: { name: true, slug: true } },
+      },
+      orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.review.count({ where }),
+    prisma.review.aggregate({ _avg: { rating: true }, _count: true }),
+    prisma.review.count({ where: { hidden: true } }),
+  ]);
+
+  return Object.assign(reviews, {
+    reviews,
+    total,
+    page,
+    pageSize,
+    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+    avgRating: allStats._avg.rating ?? 0,
+    totalAll: allStats._count,
+    hiddenCount,
   });
 }
 
