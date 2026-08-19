@@ -170,6 +170,8 @@ export const checkoutItemSchema = z.object({
 export const checkoutSchema = z.object({
   name: z.string().trim().min(2, "Informe seu nome completo").max(120),
   email: z.string().email("E-mail inválido"),
+  phone: z.string().transform((v) => v.replace(/\D/g, "")).refine((v) => /^\d{10,11}$/.test(v), "Telefone inválido"),
+  document: z.string().transform((v) => v.replace(/\D/g, "")).refine(isValidCpf, "CPF inválido"),
   cep: z
     .string()
     .regex(/^\d{5}-?\d{3}$/, "CEP inválido")

@@ -57,7 +57,7 @@ export async function OrdersDashboard({ filters }: { filters: OrderFilters }) {
         <div className="min-w-0"><p className="truncate text-sm font-semibold">{order.shipName || order.email.split("@")[0]}</p><p className="truncate text-xs text-ink-muted">{order.email}</p>{order.shipCity && <p className="mt-1 truncate text-[11px] text-ink-muted">{order.shipCity}/{order.shipState}</p>}</div>
         <div className="hidden xl:block"><p className="text-sm font-semibold">{order._count.items}</p><p className="text-[11px] text-ink-muted">produto(s)</p></div>
         <div><p className="text-sm font-bold">{formatBRL(order.totalCents)}</p><p className="text-[11px] capitalize text-ink-muted">{order.mpPaymentMethod?.replaceAll("_", " ") || "não informado"}</p></div>
-        <div><OrderStatusBadge status={order.status} /></div>
+        <div><OrderStatusBadge status={order.status} />{order.shippingNeedsAttention && <p className="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-900">⚠ Alerta no transporte</p>}</div>
         <div><ChatState count={order._count.messages} closed={order.chatClosedAt ?? (order.status === "CANCELADO" ? order.updatedAt : null)} waiting={order.awaitingReplyFrom} />{order._count.messages > 0 && <p className="mt-1 text-[11px] text-ink-muted">{order._count.messages} mensagem(ns)</p>}</div>
         <div className="hidden xl:block"><p className="text-xs font-medium">{date(order.updatedAt)}</p><p className="text-[11px] text-ink-muted">{time(order.updatedAt)}</p></div><span className="hidden text-xl text-ink-muted transition group-hover:translate-x-1 group-hover:text-brand xl:block">›</span>
       </Link></li>)}</ul>

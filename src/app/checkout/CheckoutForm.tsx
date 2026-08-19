@@ -33,7 +33,7 @@ const emptyAddress: AddressFields = {
 };
 
 type Props = {
-  contactDefaults: { name: string; email: string };
+  contactDefaults: { name: string; email: string; phone: string; document: string };
   addresses: SavedAddress[];
   isLoggedIn: boolean;
 };
@@ -139,6 +139,8 @@ export function CheckoutForm({ contactDefaults, addresses, isLoggedIn }: Props) 
       action({
         name: contact.name,
         email: contact.email,
+        phone: contact.phone,
+        document: contact.document,
         ...effectiveAddress,
         shippingOptionId,
         saveAddress: addressMode === "new" ? saveAddress : false,
@@ -165,6 +167,14 @@ export function CheckoutForm({ contactDefaults, addresses, isLoggedIn }: Props) 
               {state.fieldErrors?.name && (
                 <p className="mt-1 text-xs text-deal">{state.fieldErrors.name[0]}</p>
               )}
+            </div>
+            <div>
+              <input className="h-11 w-full rounded-xl border border-line px-4 text-sm" placeholder="Telefone com DDD" inputMode="tel" required value={contact.phone} onChange={(e) => setContact((s) => ({ ...s, phone: e.target.value }))} />
+              {state.fieldErrors?.phone && <p className="mt-1 text-xs text-deal">{state.fieldErrors.phone[0]}</p>}
+            </div>
+            <div>
+              <input className="h-11 w-full rounded-xl border border-line px-4 text-sm" placeholder="CPF do destinatário" inputMode="numeric" required value={contact.document} onChange={(e) => setContact((s) => ({ ...s, document: e.target.value }))} />
+              {state.fieldErrors?.document && <p className="mt-1 text-xs text-deal">{state.fieldErrors.document[0]}</p>}
             </div>
             <div className="sm:col-span-2">
               <input

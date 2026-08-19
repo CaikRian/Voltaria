@@ -12,6 +12,7 @@ export function SellerDashboard({ name, role, summary }: { name?: string | null;
     ...(can(role, "question:answer") ? [{ label: "Dúvidas sem resposta", value: summary.unansweredQuestions, href: "/painel/duvidas", description: "Clientes aguardando uma orientação" }] : []),
     { label: "Conversas aguardando", value: summary.chatPending, href: "/painel/conversas?filtro=waiting", description: "Mensagens que precisam da equipe" },
     { label: "Preparar para envio", value: summary.pendingShipment, href: "/painel/pedidos?status=PAGAMENTO_APROVADO", description: "Pedidos pagos para separar ou despachar" },
+    { label: "Alertas de transporte", value: summary.shippingIssues, href: "/painel/pedidos", description: "Entregas pausadas, suspensas ou sem sucesso" },
     { label: "Reembolsos solicitados", value: summary.refundRequests, href: "/painel/pedidos?status=REEMBOLSO_SOLICITADO", description: "Solicitações que precisam de análise" },
   ];
   const actions = [

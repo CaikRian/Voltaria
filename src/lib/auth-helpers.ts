@@ -29,6 +29,8 @@ export async function getCurrentUser() {
     name: user.name,
     image: user.image,
     role: user.role,
+    phone: user.phone,
+    cpf: user.cpf,
   };
 }
 

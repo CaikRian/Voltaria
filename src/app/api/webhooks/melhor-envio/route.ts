@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { updateOrderStatus } from "@/lib/orders";
+import { recordShippingEvent } from "@/lib/shipping-events";
 
 export const runtime = "nodejs";
 
@@ -37,25 +37,25 @@ export async function POST(request: NextRequest) {
       status: payload?.data?.status ?? null,
     });
     if (labelId) {
-      const order = await prisma.order.findUnique({ where: { melhorEnvioOrderId: labelId } });
+      const taggedOrderId = Array.isArray(payload?.data?.tags) ? payload.data.tags.find((item: { tag?: unknown }) => typeof item?.tag === "string")?.tag : null;
+      const order = await prisma.order.findFirst({ where: { OR: [{ melhorEnvioOrderId: labelId }, ...(taggedOrderId ? [{ id: taggedOrderId }] : [])] } });
       if (order) {
         const trackingCode = typeof payload.data.tracking === "string" ? payload.data.tracking : undefined;
         const trackingUrl = typeof payload.data.tracking_url === "string" ? payload.data.tracking_url.replace("https: //", "https://") : undefined;
-        const orderData = { ...(trackingCode ? { trackingCode } : {}), ...(trackingUrl ? { trackingUrl } : {}) };
-        if (payload.event === "order.posted" && ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO"].includes(order.status)) {
-          if (order.status === "PAGAMENTO_APROVADO") await updateOrderStatus(order.id, order.status, "PREPARANDO_ENVIO", { note: "Etiqueta liberada pela transportadora", orderData });
-          await updateOrderStatus(order.id, "PREPARANDO_ENVIO", "ENVIADO", { note: "Objeto postado na transportadora", orderData });
-        } else if (payload.event === "order.delivered" && order.status === "ENVIADO") {
-          await updateOrderStatus(order.id, order.status, "ENTREGUE", { note: "Entrega confirmada pela transportadora", orderData });
-        } else {
-          await prisma.order.update({ where: { id: order.id }, data: orderData });
-        }
+        const dateValue = payload.data.delivered_at || payload.data.posted_at || payload.data.generated_at || payload.data.paid_at || payload.data.updated_at || payload.data.created_at;
+        if (!order.melhorEnvioOrderId) await prisma.order.update({ where: { id: order.id }, data: { melhorEnvioOrderId: labelId } });
+        await recordShippingEvent({ orderId: order.id, labelId, event: String(payload.event || `order.${payload.data.status || "updated"}`), status: typeof payload.data.status === "string" ? payload.data.status : null, trackingCode, trackingUrl, occurredAt: dateValue ? new Date(dateValue) : new Date() });
       }
     }
-  } catch {
-    // O teste de cadastro pode não carregar um evento completo. O endpoint só
-    // confirma o recebimento; eventos reais serão JSON assinado.
-    console.info("[Melhor Envio] Teste de webhook recebido");
+  } catch (error) {
+    // O teste de cadastro pode chegar sem corpo completo. Falhas reais de
+    // processamento retornam 500 para acionar as retentativas do Melhor Envio.
+    if (!rawBody || error instanceof SyntaxError) {
+      console.info("[Melhor Envio] Teste de webhook recebido");
+      return NextResponse.json({ received: true }, { status: 200 });
+    }
+    console.error("[Melhor Envio] Falha ao processar webhook:", error);
+    return NextResponse.json({ error: "processing failed" }, { status: 500 });
   }
 
   return NextResponse.json({ received: true }, { status: 200 });

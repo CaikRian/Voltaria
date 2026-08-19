@@ -12,6 +12,8 @@ import { OrderStatusBadge } from "@/components/OrderStatusBadge";
 import { StatusUpdateForm } from "../StatusUpdateForm";
 import { OrderMessageThread } from "@/components/OrderMessageThread";
 import { StaffReturnFlow } from "@/components/ReturnFlow";
+import { ShippingOperations } from "@/components/ShippingOperations";
+import { ShippingTrackingTimeline } from "@/components/ShippingTrackingTimeline";
 
 export const metadata: Metadata = { title: "Pedido · Painel" };
 
@@ -225,6 +227,9 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
           )}
         </aside>
       </div>
+
+      {canUpdateStatus && (order.melhorEnvioOrderId || ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO"].includes(order.status)) && <ShippingOperations orderId={order.id} labelStatus={order.shippingLabelStatus} labelUrl={order.shippingLabelUrl} invoiceKey={order.shippingInvoiceKey} labelCostCents={order.shippingLabelCostCents} chargedCents={order.shippingCents} error={order.shippingLabelError} recipientPhone={order.shipPhone} recipientDocument={order.shipDocument} />}
+      <ShippingTrackingTimeline events={order.shippingEvents} trackingCode={order.trackingCode} trackingUrl={trackingUrl} needsAttention={order.shippingNeedsAttention} />
 
       {canUpdateStatus && <StaffReturnFlow requests={order.returnRequests} canRefund={can(user?.role, "refund:execute")} />}
 

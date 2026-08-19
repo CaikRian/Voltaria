@@ -50,6 +50,7 @@ export async function getOrderForUser(id: string, userId: string) {
         include: { items: { include: { orderItem: true } }, events: { orderBy: { createdAt: "asc" } } },
         orderBy: { createdAt: "desc" },
       },
+      shippingEvents: { orderBy: { occurredAt: "asc" } },
     },
   });
 }

@@ -253,6 +253,8 @@ model Order {
   // pedido novo sempre preenche. Páginas de detalhe tratam shippingCents==null
   // como "pedido legado" e escondem a seção de frete/endereço.
   shipName         String?
+  shipPhone        String?
+  shipDocument     String?
   shipCep          String?
   shipStreet       String?
   shipNumber       String?
@@ -267,6 +269,16 @@ model Order {
   shippingProvider  String?
   shippingServiceId String?
   melhorEnvioOrderId String? @unique
+  shippingLabelStatus String? // CART | PURCHASED | GENERATED | POSTED | DELIVERED | ISSUE | CANCELLED
+  shippingLabelUrl String?
+  shippingLabelCostCents Int?
+  shippingInvoiceKey String?
+  shippingLabelError String?
+  shippingLabelPurchasedAt DateTime?
+  shippingLabelGeneratedAt DateTime?
+  shippingLastSyncAt DateTime?
+  shippingNeedsAttention Boolean @default(false)
+  shippingEvents ShippingEvent[]
   refundedCents Int @default(0)
 
   // --- Rastreamento de envio ---
@@ -294,6 +306,26 @@ model Order {
   @@index([userId])
   @@index([abandonedAt])
   @@index([stockReservationStatus, stockReservationExpiresAt])
+}
+
+model ShippingEvent {
+  id               String   @id @default(cuid())
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId          String
+  provider         String   @default("MELHOR_ENVIO")
+  providerEvent    String
+  providerStatus   String?
+  title            String
+  description      String?
+  trackingCode     String?
+  trackingUrl      String?
+  needsAttention   Boolean  @default(false)
+  externalEventKey String   @unique
+  occurredAt       DateTime
+  createdAt        DateTime @default(now())
+
+  @@index([orderId, occurredAt])
+  @@index([needsAttention, createdAt])
 }
 
 model IntegrationCredential {

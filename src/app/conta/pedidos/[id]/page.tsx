@@ -14,6 +14,7 @@ import { OrderAddressEditor } from "../OrderAddressEditor";
 import { OrderMessageThread } from "@/components/OrderMessageThread";
 import { getOrderTrackingHint } from "@/lib/orders";
 import { OrderTimeline } from "@/components/OrderTimeline";
+import { ShippingTrackingTimeline } from "@/components/ShippingTrackingTimeline";
 
 export const metadata: Metadata = { title: "Pedido · Minha conta" };
 
@@ -113,6 +114,7 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
             events={order.statusEvents}
             createdAt={order.createdAt}
           />
+          <ShippingTrackingTimeline events={order.shippingEvents} trackingCode={order.trackingCode} trackingUrl={trackingUrl} needsAttention={order.shippingNeedsAttention} />
         </div>
 
         <aside className="flex flex-col gap-5">

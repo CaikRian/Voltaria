@@ -17,6 +17,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { cleanupAbandonedOrders, closeStaleChats } from "@/lib/cleanup-orders";
+import { syncActiveShipments } from "@/lib/shipping-events";
 
 // Validação simples de segurança — adicione um token em produção
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -43,13 +44,15 @@ export async function GET(req: NextRequest) {
 
     console.log("[Cron] Iniciando fechamento de chats inativos...");
     const closedChatsCount = await closeStaleChats();
+    const syncedShipmentsCount = await syncActiveShipments();
 
     return NextResponse.json(
       {
         success: true,
-        message: `Cleanup concluído: ${abandonedCount} reservas expiradas e liberadas, ${closedChatsCount} chats fechados por inatividade`,
+        message: `Rotinas concluídas: ${abandonedCount} reservas liberadas, ${closedChatsCount} chats fechados e ${syncedShipmentsCount} envios sincronizados`,
         abandonedCount,
         closedChatsCount,
+        syncedShipmentsCount,
         timestamp: new Date().toISOString(),
       },
       { status: 200 }

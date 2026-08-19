@@ -122,6 +122,8 @@ export async function createOrderAction(
       // Snapshot do endereço de entrega — igual OrderItem.productName já é
       // snapshot de produto, não depende do Address continuar existindo depois.
       shipName: d.name,
+      shipPhone: d.phone,
+      shipDocument: d.document,
       shipCep: d.cep,
       shipStreet: d.street,
       shipNumber: d.number,

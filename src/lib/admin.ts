@@ -103,7 +103,7 @@ export async function getAdminOrders(opts?: {
       select: {
         id: true, email: true, shipName: true, shipCity: true, shipState: true,
         totalCents: true, status: true, createdAt: true, updatedAt: true,
-        mpPaymentMethod: true, awaitingReplyFrom: true, chatClosedAt: true,
+        mpPaymentMethod: true, awaitingReplyFrom: true, chatClosedAt: true, shippingNeedsAttention: true,
         _count: { select: { items: true, messages: true } },
         messages: { orderBy: { createdAt: "desc" }, take: 1, select: { text: true, senderRole: true, createdAt: true } },
       },
@@ -146,10 +146,11 @@ export async function getSellerDashboardSummary() {
   const startOfMonth = new Date(Date.UTC(brasiliaParts.year, brasiliaParts.month - 1, 1, 3));
   const paidStatuses = ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO", "ENVIADO", "ENTREGUE"];
 
-  const [awaitingApproval, refundRequests, pendingShipment, chatPending, unansweredQuestions, pendingMessages, salesToday, salesMonth, recentOrders, products] = await Promise.all([
+  const [awaitingApproval, refundRequests, pendingShipment, shippingIssues, chatPending, unansweredQuestions, pendingMessages, salesToday, salesMonth, recentOrders, products] = await Promise.all([
     prisma.order.count({ where: { status: "AGUARDANDO_PAGAMENTO" } }),
     prisma.order.count({ where: { status: "REEMBOLSO_SOLICITADO" } }),
     prisma.order.count({ where: { status: { in: ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO"] } } }),
+    prisma.order.count({ where: { shippingNeedsAttention: true } }),
     prisma.order.count({ where: { awaitingReplyFrom: "STAFF", chatClosedAt: null } }),
     prisma.question.count({ where: { answeredAt: null, hidden: false } }),
     prisma.order.findMany({
@@ -193,6 +194,7 @@ export async function getSellerDashboardSummary() {
     awaitingApproval,
     refundRequests,
     pendingShipment,
+    shippingIssues,
     chatPending,
     unansweredQuestions,
     pendingMessages,
@@ -353,6 +355,7 @@ export async function getAdminOrder(id: string) {
         include: { items: { include: { orderItem: true } }, events: { orderBy: { createdAt: "asc" } } },
         orderBy: { createdAt: "desc" },
       },
+      shippingEvents: { orderBy: { occurredAt: "asc" } },
     },
   });
 }

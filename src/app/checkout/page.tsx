@@ -13,7 +13,7 @@ export default async function CheckoutPage() {
     <div className="container-x py-10">
       <h1 className="mb-6 font-display text-3xl font-semibold">Finalizar compra</h1>
       <CheckoutForm
-        contactDefaults={{ name: user?.name ?? "", email: user?.email ?? "" }}
+        contactDefaults={{ name: user?.name ?? "", email: user?.email ?? "", phone: user?.phone ?? "", document: user?.cpf ?? "" }}
         addresses={addresses}
         isLoggedIn={!!user}
       />
