@@ -34,6 +34,12 @@ html[data-theme="dark"] {
 
 html[data-theme="dark"] body { background-image: radial-gradient(circle at 80% 0%, rgb(92 22 126 / .14), transparent 34rem); }
 html[data-theme="dark"] .bg-white { background-color: rgb(var(--paper)) !important; }
+/* `ink` muda para claro quando é texto, mas superfícies de alto contraste devem
+   continuar escuras. Evita texto branco sobre fundo branco em heróis e CTAs. */
+html[data-theme="dark"] .bg-ink { background-color: rgb(9 7 13) !important; }
+html[data-theme="dark"] .bg-ink-soft { background-color: rgb(64 56 73) !important; }
+html[data-theme="dark"] .bg-ink\/40 { background-color: rgb(9 7 13 / .72) !important; }
+html[data-theme="dark"] .text-brand-dark { color: rgb(220 154 255) !important; }
 html[data-theme="dark"] .bg-slate-50 { background-color: rgb(27 22 32) !important; }
 html[data-theme="dark"] .bg-slate-100 { background-color: rgb(38 31 44) !important; }
 html[data-theme="dark"] .text-slate-950, html[data-theme="dark"] .text-slate-900, html[data-theme="dark"] .text-gray-900 { color: rgb(var(--ink)) !important; }
