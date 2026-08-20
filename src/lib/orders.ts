@@ -163,6 +163,31 @@ export async function reconcilePaymentStatus(paymentId: string) {
   const order = await getOrderById(orderId);
   if (!order) return null;
 
+  // Uma preferência antiga pode continuar aberta no navegador depois que o
+  // cliente troca a forma de pagamento. Nunca confirma o pedido se o valor ou
+  // a modalidade pagos não correspondem à versão atual registrada no banco.
+  if (["approved", "authorized"].includes(payment.status ?? "")) {
+    const paidCents = Math.round((payment.transaction_amount ?? 0) * 100);
+    const isPix = payment.payment_method_id === "pix" || payment.payment_type_id === "bank_transfer";
+    const choiceMatches = order.paymentChoice === "PIX"
+      ? isPix
+      : order.paymentChoice === "CARD_BOLETO"
+        ? !isPix
+        : true;
+    if (paidCents !== order.totalCents || !choiceMatches) {
+      console.error("Pagamento divergente ignorado", {
+        orderId: order.id,
+        paymentId: String(payment.id),
+        expectedCents: order.totalCents,
+        paidCents,
+        expectedChoice: order.paymentChoice,
+        paymentMethod: payment.payment_method_id,
+        paymentType: payment.payment_type_id,
+      });
+      return { orderId: order.id, status: order.status, mismatch: true };
+    }
+  }
+
   const newStatus = mapMercadoPagoStatusToOrderStatus(payment.status ?? "");
 
   await updateOrderStatus(order.id, order.status, newStatus, {

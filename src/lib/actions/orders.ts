@@ -578,7 +578,10 @@ export async function closeOrderChatAction(
  * Ação: Cliente tenta pagar novamente um pedido com pagamento recusado
  * Cria uma nova preferência na Mercado Pago e redireciona
  */
-export async function retryPaymentAction(orderId: string): Promise<CheckoutFormState> {
+export async function retryPaymentAction(
+  orderId: string,
+  requestedPaymentChoice?: "PIX" | "CARD_BOLETO"
+): Promise<CheckoutFormState> {
   const user = await getCurrentUser();
 
   const order = await prisma.order.findUnique({
@@ -599,20 +602,47 @@ export async function retryPaymentAction(orderId: string): Promise<CheckoutFormS
     return { error: "Você não tem permissão para pagar este pedido." };
   }
 
-  const reservationExtended = await prisma.$transaction(async (tx) => {
+  if (requestedPaymentChoice && !["PIX", "CARD_BOLETO"].includes(requestedPaymentChoice)) {
+    return { error: "Forma de pagamento inválida." };
+  }
+
+  const paymentOrder = await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${order.id} FOR UPDATE`;
-    const fresh = await tx.order.findUniqueOrThrow({ where: { id: order.id } });
+    const fresh = await tx.order.findUniqueOrThrow({ where: { id: order.id }, include: { items: true } });
     if (
       !["AGUARDANDO_PAGAMENTO", "PAGAMENTO_RECUSADO"].includes(fresh.status) ||
       fresh.stockReservationStatus !== "RESERVED"
-    ) return false;
+    ) return null;
+
+    const paymentChoice = requestedPaymentChoice ?? (fresh.paymentChoice as "PIX" | "CARD_BOLETO" | null) ?? "CARD_BOLETO";
+    const recalculatedItems = fresh.items.map((item) => {
+      const originalUnitCents = item.originalUnitCents ?? item.unitCents;
+      return {
+        ...item,
+        originalUnitCents,
+        unitCents: paymentChoice === "PIX" ? Math.round(originalUnitCents * 0.95) : originalUnitCents,
+      };
+    });
+    const originalTotal = recalculatedItems.reduce((sum, item) => sum + item.originalUnitCents * item.qty, 0);
+    const productsTotal = recalculatedItems.reduce((sum, item) => sum + item.unitCents * item.qty, 0);
+
+    await Promise.all(recalculatedItems.map((item) => tx.orderItem.update({
+      where: { id: item.id },
+      data: { unitCents: item.unitCents, originalUnitCents: item.originalUnitCents },
+    })));
     await tx.order.update({
       where: { id: order.id },
-      data: { stockReservationExpiresAt: new Date(Date.now() + 30 * 60 * 1000), abandonedAt: null },
+      data: {
+        paymentChoice,
+        discountCents: originalTotal - productsTotal,
+        totalCents: productsTotal + (fresh.shippingCents ?? 0),
+        stockReservationExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
+        abandonedAt: null,
+      },
     });
-    return true;
+    return { ...fresh, paymentChoice, items: recalculatedItems, totalCents: productsTotal + (fresh.shippingCents ?? 0) };
   });
-  if (!reservationExtended) {
+  if (!paymentOrder) {
     return { error: "A reserva deste pedido expirou. Faça um novo pedido para verificar o estoque atual." };
   }
 
@@ -620,7 +650,7 @@ export async function retryPaymentAction(orderId: string): Promise<CheckoutFormS
   let initPoint: string;
 
   try {
-    const items = order.items.map((i) => ({
+    const items = paymentOrder.items.map((i) => ({
       id: i.productId,
       title: i.variantName ? `${i.productName} (${i.variantName})` : i.productName,
       quantity: i.qty,
@@ -628,12 +658,12 @@ export async function retryPaymentAction(orderId: string): Promise<CheckoutFormS
       currency_id: "BRL",
     }));
 
-    if (order.shippingCents && order.shippingCents > 0) {
+    if (paymentOrder.shippingCents && paymentOrder.shippingCents > 0) {
       items.push({
         id: "frete",
-        title: `Frete${order.shippingMethod ? ` (${order.shippingMethod})` : ""}`,
+        title: `Frete${paymentOrder.shippingMethod ? ` (${paymentOrder.shippingMethod})` : ""}`,
         quantity: 1,
-        unit_price: toReais(order.shippingCents),
+        unit_price: toReais(paymentOrder.shippingCents),
         currency_id: "BRL",
       });
     }
@@ -643,7 +673,7 @@ export async function retryPaymentAction(orderId: string): Promise<CheckoutFormS
     const pref = await preferenceClient.create({
       body: {
         items,
-        payer: { email: order.email },
+        payer: { email: paymentOrder.email },
         external_reference: order.id,
         back_urls: {
           success: `${process.env.APP_URL}/checkout/sucesso?order=${order.id}`,
@@ -652,7 +682,7 @@ export async function retryPaymentAction(orderId: string): Promise<CheckoutFormS
         },
         ...(isPublicAppUrl ? { auto_return: "approved" as const } : {}),
         notification_url: `${process.env.APP_URL}/api/webhooks/mercadopago`,
-        ...(mercadoPagoPaymentMethods(order.paymentChoice) ? { payment_methods: mercadoPagoPaymentMethods(order.paymentChoice) } : {}),
+        ...(mercadoPagoPaymentMethods(paymentOrder.paymentChoice) ? { payment_methods: mercadoPagoPaymentMethods(paymentOrder.paymentChoice) } : {}),
       },
     });
 
@@ -678,7 +708,9 @@ export async function retryPaymentAction(orderId: string): Promise<CheckoutFormS
         note:
           order.status === "PAGAMENTO_RECUSADO"
             ? "Cliente tentando novamente após recusa"
-            : "Cliente retomou o pagamento no Mercado Pago",
+            : requestedPaymentChoice && requestedPaymentChoice !== order.paymentChoice
+              ? `Cliente alterou a forma de pagamento para ${requestedPaymentChoice === "PIX" ? "Pix" : "cartão ou boleto"}`
+              : "Cliente retomou o pagamento no Mercado Pago",
       },
     });
   } catch (e) {

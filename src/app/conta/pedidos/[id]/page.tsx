@@ -185,6 +185,7 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
               reviewLinks={reviewLinks}
               trackingNote={trackingNote}
               trackingUrl={trackingUrl}
+              paymentChoice={order.paymentChoice}
             />
           </div>
 

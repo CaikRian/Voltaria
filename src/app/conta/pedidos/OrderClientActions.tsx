@@ -17,16 +17,21 @@ export function OrderClientActions({
   reviewLinks = [],
   trackingNote,
   trackingUrl,
+  paymentChoice,
 }: {
   orderId: string;
   status: string;
   reviewLinks?: Array<{ id: string; label: string; href: string }>;
   trackingNote?: string | null;
   trackingUrl?: string | null;
+  paymentChoice?: string | null;
 }) {
   const [showModal, setShowModal] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [state, setState] = useState<ClientOrderActionState>({});
+  const [selectedPaymentChoice, setSelectedPaymentChoice] = useState<"PIX" | "CARD_BOLETO">(
+    paymentChoice === "CARD_BOLETO" ? "CARD_BOLETO" : "PIX"
+  );
 
   // Devoluções usam o módulo dedicado (itens, inspeção, rastreio e auditoria).
   const actions = getClientActions(status as any).filter((action) => action.id !== "requestRefund");
@@ -45,7 +50,7 @@ export function OrderClientActions({
 
   const handleRetryPayment = async () => {
     setLoading(true);
-    const result = await retryPaymentAction(orderId);
+    const result = await retryPaymentAction(orderId, selectedPaymentChoice);
     setState(result);
     setLoading(false);
   };
@@ -111,7 +116,9 @@ export function OrderClientActions({
       {showModal === "retry" && (
         <Modal title="Tentar novamente" onClose={() => setShowModal(null)}>
           <div className="flex flex-col gap-3">
-            <p className="text-sm text-gray-600">Você será redirecionado para tentar o pagamento novamente.</p>
+            <p className="text-sm text-gray-600">Escolha como deseja pagar. O total do pedido será recalculado antes do redirecionamento.</p>
+            <label className={`cursor-pointer rounded-xl border p-3 text-sm ${selectedPaymentChoice === "PIX" ? "border-brand bg-brand-soft" : "border-line"}`}><span className="flex gap-2"><input type="radio" checked={selectedPaymentChoice === "PIX"} onChange={() => setSelectedPaymentChoice("PIX")} /><span><strong>Pix</strong><br /><span className="text-xs text-gray-600">5% de desconto nos produtos</span></span></span></label>
+            <label className={`cursor-pointer rounded-xl border p-3 text-sm ${selectedPaymentChoice === "CARD_BOLETO" ? "border-brand bg-brand-soft" : "border-line"}`}><span className="flex gap-2"><input type="radio" checked={selectedPaymentChoice === "CARD_BOLETO"} onChange={() => setSelectedPaymentChoice("CARD_BOLETO")} /><span><strong>Cartão ou boleto</strong><br /><span className="text-xs text-gray-600">Valor normal dos produtos</span></span></span></label>
             {state.error && <p className="text-xs text-red-600">{state.error}</p>}
             <div className="flex gap-2">
               <Button onClick={handleRetryPayment} disabled={loading} className="flex-1">
