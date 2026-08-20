@@ -24,29 +24,29 @@ model Category {
 }
 
 model Product {
-  id            String    @id @default(cuid())
-  name          String
-  slug          String    @unique
-  description   String
-  brand         String?
-  priceCents    Int // preço de venda em centavos
-  compareCents  Int? // preço "de" (riscado) — para calcular desconto
-  imageUrl      String
-  gallery       String? // JSON string com URLs extras (SQLite não tem array)
-  featured      Boolean   @default(false)
-  active        Boolean   @default(true)
-  stock         Int       @default(0) // estoque quando não há variações
-  weightGrams   Int       @default(300)
-  widthCm       Int       @default(11)
-  heightCm      Int       @default(5)
-  lengthCm      Int       @default(16)
-  category      Category  @relation(fields: [categoryId], references: [id])
-  categoryId    String
-  variants      Variant[]
-  reviews       Review[]
-  questions     Question[]
-  auditEvents   ProductAuditEvent[]
-  createdAt     DateTime  @default(now())
+  id           String              @id @default(cuid())
+  name         String
+  slug         String              @unique
+  description  String
+  brand        String?
+  priceCents   Int // preço de venda em centavos
+  compareCents Int? // preço "de" (riscado) — para calcular desconto
+  imageUrl     String
+  gallery      String? // JSON string com URLs extras (SQLite não tem array)
+  featured     Boolean             @default(false)
+  active       Boolean             @default(true)
+  stock        Int                 @default(0) // estoque quando não há variações
+  weightGrams  Int                 @default(300)
+  widthCm      Int                 @default(11)
+  heightCm     Int                 @default(5)
+  lengthCm     Int                 @default(16)
+  category     Category            @relation(fields: [categoryId], references: [id])
+  categoryId   String
+  variants     Variant[]
+  reviews      Review[]
+  questions    Question[]
+  auditEvents  ProductAuditEvent[]
+  createdAt    DateTime            @default(now())
 
   @@index([categoryId])
   @@index([featured])
@@ -58,8 +58,8 @@ model ProductAuditEvent {
   id         String   @id @default(cuid())
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId  String
-  action     String   // CREATED | UPDATED
-  changes    String   // JSON: [{ field, label, before, after }]
+  action     String // CREATED | UPDATED
+  changes    String // JSON: [{ field, label, before, after }]
   actorId    String?
   actorName  String?
   actorEmail String?
@@ -83,34 +83,35 @@ model Variant {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  cpf           String?   @unique // somente 11 dígitos; nullable para contas antigas/sociais
-  phone         String?   // DDD + número, somente dígitos (10 ou 11)
-  dateOfBirth   DateTime?
-  gender        String?
-  referralSource String?
-  allowEmailUpdates    Boolean @default(false)
-  allowWhatsappUpdates Boolean @default(false)
+  id                     String    @id @default(cuid())
+  email                  String    @unique
+  cpf                    String?   @unique // somente 11 dígitos; nullable para contas antigas/sociais
+  phone                  String? // DDD + número, somente dígitos (10 ou 11)
+  dateOfBirth            DateTime?
+  gender                 String?
+  referralSource         String?
+  allowEmailUpdates      Boolean   @default(false)
+  allowWhatsappUpdates   Boolean   @default(false)
   communicationConsentAt DateTime?
-  name          String?
-  image         String? // avatar (ex.: vindo do Google)
-  passwordHash  String? // hash Argon2/bcrypt — nulo para contas só-social
-  role          String    @default("CLIENTE") // CLIENTE | VENDEDOR | GERENTE | ADMIN
-  emailVerified DateTime?
-  createdAt     DateTime  @default(now())
-  lastLoginAt   DateTime? // atualizado no evento signIn (src/auth.ts) — último login, não navegação em tempo real
+  name                   String?
+  image                  String? // avatar (ex.: vindo do Google)
+  passwordHash           String? // hash Argon2/bcrypt — nulo para contas só-social
+  role                   String    @default("CLIENTE") // CLIENTE | VENDEDOR | GERENTE | ADMIN
+  emailVerified          DateTime?
+  createdAt              DateTime  @default(now())
+  lastLoginAt            DateTime? // atualizado no evento signIn (src/auth.ts) — último login, não navegação em tempo real
 
-  orders       Order[]
-  reviews      Review[]
-  questions    Question[]
-  addresses    Address[]
-  accounts     Account[] // logins sociais vinculados
-  sessions     Session[]
-  orderMessages OrderMessage[]
-  returnRequests ReturnRequest[]
+  orders              Order[]
+  reviews             Review[]
+  questions           Question[]
+  addresses           Address[]
+  accounts            Account[] // logins sociais vinculados
+  sessions            Session[]
+  orderMessages       OrderMessage[]
+  returnRequests      ReturnRequest[]
   passwordResetTokens PasswordResetToken[]
-  chatSessions  ChatSession[]
+  chatSessions        ChatSession[]
+  orderFeedbacks      OrderFeedback[]
 }
 
 model PasswordResetToken {
@@ -211,25 +212,26 @@ model VerificationToken {
 }
 
 model Order {
-  id           String             @id @default(cuid())
-  email        String
-  totalCents   Int
+  id             String             @id @default(cuid())
+  email          String
+  totalCents     Int
   // Status: AGUARDANDO_PAGAMENTO | PAGAMENTO_RECUSADO | PAGAMENTO_APROVADO | PREPARANDO_ENVIO | ENVIADO | ENTREGUE | REEMBOLSO_SOLICITADO | REEMBOLSADO | CANCELADO
-  status       String             @default("AGUARDANDO_PAGAMENTO")
-  user         User?              @relation(fields: [userId], references: [id])
-  userId       String?
-  items        OrderItem[]
-  statusEvents OrderStatusEvent[]
-  messages     OrderMessage[]
+  status         String             @default("AGUARDANDO_PAGAMENTO")
+  user           User?              @relation(fields: [userId], references: [id])
+  userId         String?
+  items          OrderItem[]
+  statusEvents   OrderStatusEvent[]
+  messages       OrderMessage[]
   returnRequests ReturnRequest[]
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  feedback       OrderFeedback?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 
   // --- Rastreamento de Cancelamento/Reembolso ---
-  reasonCancelled  String? // motivo do cancelamento (ex: "Cliente desistiu", "Recusa de pagamento")
-  refundReason     String? // motivo do reembolso (ex: "Produto danificado", "Não chegou")
+  reasonCancelled   String? // motivo do cancelamento (ex: "Cliente desistiu", "Recusa de pagamento")
+  refundReason      String? // motivo do reembolso (ex: "Produto danificado", "Não chegou")
   refundRequestedAt DateTime? // timestamp da solicitação de reembolso
-  canChangeAddress Boolean @default(true) // permite mudar endereço antes do envio
+  canChangeAddress  Boolean   @default(true) // permite mudar endereço antes do envio
 
   // --- Timeout para pedidos abandonados ---
   // Orders AGUARDANDO_PAGAMENTO > 30 min podem ser auto-canceladas
@@ -264,22 +266,22 @@ model Order {
   shipState        String?
 
   // --- Frete ---
-  shippingCents  Int? // valor efetivamente cobrado (0 = grátis; null = pedido legado)
-  shippingMethod String? // rótulo da opção escolhida, ex.: "Econômico — 2 a 4 dias úteis"
-  shippingProvider  String?
-  shippingServiceId String?
-  melhorEnvioOrderId String? @unique
-  shippingLabelStatus String? // CART | PURCHASED | GENERATED | POSTED | DELIVERED | ISSUE | CANCELLED
-  shippingLabelUrl String?
-  shippingLabelCostCents Int?
-  shippingInvoiceKey String?
-  shippingLabelError String?
+  shippingCents            Int? // valor efetivamente cobrado (0 = grátis; null = pedido legado)
+  shippingMethod           String? // rótulo da opção escolhida, ex.: "Econômico — 2 a 4 dias úteis"
+  shippingProvider         String?
+  shippingServiceId        String?
+  melhorEnvioOrderId       String?         @unique
+  shippingLabelStatus      String? // CART | PURCHASED | GENERATED | POSTED | DELIVERED | ISSUE | CANCELLED
+  shippingLabelUrl         String?
+  shippingLabelCostCents   Int?
+  shippingInvoiceKey       String?
+  shippingLabelError       String?
   shippingLabelPurchasedAt DateTime?
   shippingLabelGeneratedAt DateTime?
-  shippingLastSyncAt DateTime?
-  shippingNeedsAttention Boolean @default(false)
-  shippingEvents ShippingEvent[]
-  refundedCents Int @default(0)
+  shippingLastSyncAt       DateTime?
+  shippingNeedsAttention   Boolean         @default(false)
+  shippingEvents           ShippingEvent[]
+  refundedCents            Int             @default(0)
 
   // --- Rastreamento de envio ---
   // Sem integração com API de transportadora — o vendedor cola o código/link que
@@ -296,16 +298,33 @@ model Order {
   // Timestamp da mensagem que colocou o chat em "aguardando cliente" — usado só
   // pra contar os 3 dias de inatividade (closeStaleChats). Nunca conta enquanto
   // awaitingReplyFrom == "STAFF" (não faz sentido cobrar prazo da equipe assim).
-  chatWaitingSince DateTime?
+  chatWaitingSince  DateTime?
   // Fechamento manual (staff) ou automático (3 dias sem resposta do cliente).
   // Uma nova mensagem de qualquer lado reabre automaticamente (limpa este campo).
-  chatClosedAt DateTime?
+  chatClosedAt      DateTime?
 
   @@index([email])
   @@index([status])
   @@index([userId])
   @@index([abandonedAt])
   @@index([stockReservationStatus, stockReservationExpiresAt])
+}
+
+model OrderFeedback {
+  id             String   @id @default(cuid())
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId        String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  deliveryRating Int
+  serviceRating  Int
+  sellerRating   Int
+  comment        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
 }
 
 model ShippingEvent {
@@ -339,8 +358,8 @@ model IntegrationCredential {
 }
 
 model OrderItem {
-  id          String  @id @default(cuid())
-  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id          String       @id @default(cuid())
+  order       Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
   orderId     String
   productId   String
   productName String // snapshot: nome no momento da compra
@@ -365,7 +384,7 @@ model ReturnRequest {
   requestType         String        @default("RETURN") // CANCELLATION (antes do envio) | RETURN (após envio)
   reasonCategory      String
   reasonDetails       String
-  evidenceUrls        String?       // JSON string de URLs públicas
+  evidenceUrls        String? // JSON string de URLs públicas
   customerNote        String?
   staffNote           String?
   rejectionReason     String?
@@ -405,7 +424,7 @@ model ReturnItem {
   orderItemId     String
   qty             Int
   unitCents       Int
-  condition       String?       // SEALED | SELLABLE | DAMAGED | INCOMPLETE | MISSING
+  condition       String? // SEALED | SELLABLE | DAMAGED | INCOMPLETE | MISSING
   restockDecision String        @default("PENDING") // PENDING | RESTOCK | DO_NOT_RESTOCK
   restockedAt     DateTime?
 
@@ -442,14 +461,14 @@ model OrderStatusEvent {
 }
 
 model OrderMessage {
-  id        String   @id @default(cuid())
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderId   String
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId    String?
-  senderRole String  // CLIENTE | VENDEDOR | GERENTE | ADMIN
-  text      String
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId    String
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId     String?
+  senderRole String // CLIENTE | VENDEDOR | GERENTE | ADMIN
+  text       String
+  createdAt  DateTime @default(now())
 
   @@index([orderId])
   @@index([userId])
@@ -461,9 +480,9 @@ model OrderMessage {
 // pessoa está logada. Só existe a partir do momento em que a pessoa pede pra falar
 // com um atendente — a conversa com o bot em si não é gravada (roda só no client).
 model ChatSession {
-  id                String    @id @default(cuid())
+  id                String        @id @default(cuid())
   visitorId         String // id anônimo gerado no client (localStorage)
-  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user              User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   userId            String?
   name              String?
   email             String
@@ -472,8 +491,8 @@ model ChatSession {
   awaitingReplyFrom String? // STAFF | VISITANTE
   chatWaitingSince  DateTime?
   chatClosedAt      DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
   messages          ChatMessage[]
 
   @@index([visitorId])

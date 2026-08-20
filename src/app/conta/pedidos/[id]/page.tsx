@@ -15,6 +15,7 @@ import { OrderMessageThread } from "@/components/OrderMessageThread";
 import { getOrderTrackingHint } from "@/lib/orders";
 import { OrderTimeline } from "@/components/OrderTimeline";
 import { ShippingTrackingTimeline } from "@/components/ShippingTrackingTimeline";
+import { OrderFeedbackCard } from "@/components/OrderFeedback";
 
 export const metadata: Metadata = { title: "Pedido · Minha conta" };
 
@@ -30,10 +31,12 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
   const trackingNote = getOrderTrackingHint(order.statusEvents);
   const trackingUrl = resolveTrackingUrl(order.trackingCode, order.trackingUrl);
   const productIds = [...new Set(order.items.map((item) => item.productId))];
-  const productSlugs = await prisma.product.findMany({
-    where: { id: { in: productIds } },
-    select: { id: true, slug: true },
-  });
+  const [productSlugs, existingReviews] = await Promise.all([
+    prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, slug: true } }),
+    prisma.review.findMany({ where: { userId: user.id, productId: { in: productIds } }, select: { productId: true, rating: true, comment: true } }),
+  ]);
+  const reviewedProductIds = new Set(existingReviews.map((review) => review.productId));
+  const reviewByProductId = new Map(existingReviews.map((review) => [review.productId, review]));
   const slugByProductId = Object.fromEntries(productSlugs.map((product) => [product.id, product.slug]));
   const reviewLinks = order.items.map((item) => ({
     id: item.productId,
@@ -115,6 +118,7 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
             createdAt={order.createdAt}
           />
           <ShippingTrackingTimeline events={order.shippingEvents} trackingCode={order.trackingCode} trackingUrl={trackingUrl} needsAttention={order.shippingNeedsAttention} />
+          <OrderFeedbackCard orderId={order.id} status={order.status} feedback={order.feedback} items={order.items.map((item) => ({ ...item, alreadyReviewed: reviewedProductIds.has(item.productId), reviewRating: reviewByProductId.get(item.productId)?.rating, reviewComment: reviewByProductId.get(item.productId)?.comment }))} />
         </div>
 
         <aside className="flex flex-col gap-5">

@@ -14,6 +14,8 @@ import { OrderMessageThread } from "@/components/OrderMessageThread";
 import { StaffReturnFlow } from "@/components/ReturnFlow";
 import { ShippingOperations } from "@/components/ShippingOperations";
 import { ShippingTrackingTimeline } from "@/components/ShippingTrackingTimeline";
+import { OrderFeedbackCard } from "@/components/OrderFeedback";
+import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = { title: "Pedido · Painel" };
 
@@ -23,6 +25,8 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
   const { id } = await params;
   const [order, user] = await Promise.all([getAdminOrder(id), getCurrentUser()]);
   if (!order) notFound();
+  const productReviews = order.userId ? await prisma.review.findMany({ where: { userId: order.userId, productId: { in: order.items.map((item) => item.productId) } }, select: { productId: true, rating: true, comment: true } }) : [];
+  const reviewByProductId = new Map(productReviews.map((review) => [review.productId, review]));
 
   const canUpdateStatus = can(user?.role, "order:update:status");
   const action = updateOrderStatusAction.bind(null, order.id);
@@ -230,6 +234,7 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
 
       {canUpdateStatus && (order.melhorEnvioOrderId || ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO"].includes(order.status)) && <ShippingOperations orderId={order.id} labelStatus={order.shippingLabelStatus} labelUrl={order.shippingLabelUrl} invoiceKey={order.shippingInvoiceKey} labelCostCents={order.shippingLabelCostCents} chargedCents={order.shippingCents} error={order.shippingLabelError} recipientPhone={order.shipPhone} recipientDocument={order.shipDocument} />}
       <ShippingTrackingTimeline events={order.shippingEvents} trackingCode={order.trackingCode} trackingUrl={trackingUrl} needsAttention={order.shippingNeedsAttention} />
+      <OrderFeedbackCard staff orderId={order.id} status={order.status} feedback={order.feedback} items={order.items.map((item) => ({ ...item, reviewRating: reviewByProductId.get(item.productId)?.rating, reviewComment: reviewByProductId.get(item.productId)?.comment }))} />
 
       {canUpdateStatus && <StaffReturnFlow requests={order.returnRequests} canRefund={can(user?.role, "refund:execute")} />}
 

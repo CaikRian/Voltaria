@@ -14,7 +14,8 @@ type EmailKind =
   | "RETURN_REJECTED"
   | "RETURN_RECEIVED"
   | "REFUND_CONFIRMED"
-  | "SHIPPING_ATTENTION";
+  | "SHIPPING_ATTENTION"
+  | "REVIEW_REQUEST";
 
 type EmailOptions = { amountCents?: number; note?: string | null; trackingCode?: string | null; trackingUrl?: string | null };
 
@@ -31,6 +32,7 @@ const COPY: Record<EmailKind, { subject: string; title: string; message: string 
   RETURN_RECEIVED: { subject: "Devolução recebida", title: "Recebemos sua devolução", message: "O pacote retornou à loja e seguirá para conferência." },
   REFUND_CONFIRMED: { subject: "Reembolso confirmado", title: "Seu reembolso foi realizado", message: "O Mercado Pago confirmou o reembolso. O prazo para aparecer depende do meio de pagamento e da instituição financeira." },
   SHIPPING_ATTENTION: { subject: "Atualização importante da entrega", title: "Sua entrega precisa de atenção", message: "A transportadora informou uma ocorrência. Nossa equipe está acompanhando o envio." },
+  REVIEW_REQUEST: { subject: "Como foi sua experiência?", title: "Conte como foi sua compra", message: "Avalie os produtos, a entrega e o atendimento da Heca Store. Sua opinião ajuda outros clientes e melhora nosso serviço." },
 };
 
 function escapeHtml(value: string) {

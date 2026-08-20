@@ -52,6 +52,7 @@ export async function getOrderForUser(id: string, userId: string) {
         orderBy: { createdAt: "desc" },
       },
       shippingEvents: { orderBy: { occurredAt: "asc" } },
+      feedback: true,
     },
   });
 }
@@ -142,6 +143,7 @@ export async function updateOrderStatus(
   if (result.changed) {
     const emailKind = emailKindForOrderStatus(newStatus);
     if (emailKind) await sendOrderEmail(orderId, emailKind);
+    if (newStatus === "ENTREGUE") await sendOrderEmail(orderId, "REVIEW_REQUEST");
   }
   return result.updatedOrder;
 }

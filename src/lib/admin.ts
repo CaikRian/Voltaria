@@ -356,6 +356,7 @@ export async function getAdminOrder(id: string) {
         orderBy: { createdAt: "desc" },
       },
       shippingEvents: { orderBy: { occurredAt: "asc" } },
+      feedback: true,
     },
   });
 }
