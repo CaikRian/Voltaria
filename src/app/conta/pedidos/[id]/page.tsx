@@ -44,6 +44,7 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
     href: slugByProductId[item.productId] ? `/produtos/${slugByProductId[item.productId]}` : "/produtos",
   }));
   const originalProductsCents = order.items.reduce((sum, item) => sum + (item.originalUnitCents ?? item.unitCents) * item.qty, 0);
+  const pixProductsCents = order.items.reduce((sum, item) => sum + Math.round((item.originalUnitCents ?? item.unitCents) * 0.95) * item.qty, 0);
 
   return (
     <div className="container-x py-8 sm:py-10">
@@ -186,6 +187,9 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
               trackingNote={trackingNote}
               trackingUrl={trackingUrl}
               paymentChoice={order.paymentChoice}
+              originalProductsCents={originalProductsCents}
+              shippingCents={order.shippingCents ?? 0}
+              pixDiscountCents={originalProductsCents - pixProductsCents}
             />
           </div>
 

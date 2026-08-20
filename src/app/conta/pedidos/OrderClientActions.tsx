@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cancelOrderAction, retryPaymentAction } from "@/lib/actions/orders";
 import { getClientActions, ORDER_STATUS } from "@/lib/order-status";
 import { Button } from "@/components/ui/Button";
+import { formatBRL } from "@/lib/format";
 
 type ClientOrderActionState = {
   error?: string;
@@ -18,6 +19,9 @@ export function OrderClientActions({
   trackingNote,
   trackingUrl,
   paymentChoice,
+  originalProductsCents,
+  shippingCents,
+  pixDiscountCents,
 }: {
   orderId: string;
   status: string;
@@ -25,6 +29,9 @@ export function OrderClientActions({
   trackingNote?: string | null;
   trackingUrl?: string | null;
   paymentChoice?: string | null;
+  originalProductsCents: number;
+  shippingCents: number;
+  pixDiscountCents: number;
 }) {
   const [showModal, setShowModal] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,6 +39,8 @@ export function OrderClientActions({
   const [selectedPaymentChoice, setSelectedPaymentChoice] = useState<"PIX" | "CARD_BOLETO">(
     paymentChoice === "CARD_BOLETO" ? "CARD_BOLETO" : "PIX"
   );
+  const selectedDiscountCents = selectedPaymentChoice === "PIX" ? pixDiscountCents : 0;
+  const selectedTotalCents = originalProductsCents - selectedDiscountCents + shippingCents;
 
   // Devoluções usam o módulo dedicado (itens, inspeção, rastreio e auditoria).
   const actions = getClientActions(status as any).filter((action) => action.id !== "requestRefund");
@@ -119,6 +128,20 @@ export function OrderClientActions({
             <p className="text-sm text-gray-600">Escolha como deseja pagar. O total do pedido será recalculado antes do redirecionamento.</p>
             <label className={`cursor-pointer rounded-xl border p-3 text-sm ${selectedPaymentChoice === "PIX" ? "border-brand bg-brand-soft" : "border-line"}`}><span className="flex gap-2"><input type="radio" checked={selectedPaymentChoice === "PIX"} onChange={() => setSelectedPaymentChoice("PIX")} /><span><strong>Pix</strong><br /><span className="text-xs text-gray-600">5% de desconto nos produtos</span></span></span></label>
             <label className={`cursor-pointer rounded-xl border p-3 text-sm ${selectedPaymentChoice === "CARD_BOLETO" ? "border-brand bg-brand-soft" : "border-line"}`}><span className="flex gap-2"><input type="radio" checked={selectedPaymentChoice === "CARD_BOLETO"} onChange={() => setSelectedPaymentChoice("CARD_BOLETO")} /><span><strong>Cartão ou boleto</strong><br /><span className="text-xs text-gray-600">Valor normal dos produtos</span></span></span></label>
+            <div className="rounded-xl bg-mist p-4 text-sm">
+              <p className="mb-3 font-semibold text-ink">Valor antes de continuar</p>
+              <dl className="space-y-2">
+                <div className="flex justify-between gap-4 text-ink-soft"><dt>Produtos</dt><dd>{formatBRL(originalProductsCents)}</dd></div>
+                {selectedDiscountCents > 0 && <div className="flex justify-between gap-4 font-medium text-green-700"><dt>Desconto Pix (5%)</dt><dd>− {formatBRL(selectedDiscountCents)}</dd></div>}
+                <div className="flex justify-between gap-4 text-ink-soft"><dt>Frete</dt><dd>{formatBRL(shippingCents)}</dd></div>
+                <div className="flex justify-between gap-4 border-t border-line pt-2 text-base font-semibold text-ink"><dt>Total a pagar</dt><dd>{formatBRL(selectedTotalCents)}</dd></div>
+              </dl>
+              <p className="mt-3 text-xs leading-relaxed text-ink-muted">
+                {selectedPaymentChoice === "PIX"
+                  ? "O desconto de 5% é aplicado somente aos produtos. O frete é repassado integralmente."
+                  : "Cartão e boleto mantêm o preço normal dos produtos. O frete é repassado integralmente."}
+              </p>
+            </div>
             {state.error && <p className="text-xs text-red-600">{state.error}</p>}
             <div className="flex gap-2">
               <Button onClick={handleRetryPayment} disabled={loading} className="flex-1">
