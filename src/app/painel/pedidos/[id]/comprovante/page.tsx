@@ -56,6 +56,8 @@ export default async function PainelPaymentReceiptPage({ params }: { params: Par
           shipState: order.shipState,
           shipCep: order.shipCep,
           refundedCents: order.refundedCents,
+          paymentChoice: order.paymentChoice,
+          discountCents: order.discountCents,
           returns: order.returnRequests,
         }}
       />

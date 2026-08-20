@@ -187,6 +187,7 @@ export const checkoutSchema = z.object({
     .length(2, "UF inválida")
     .transform((v) => v.toUpperCase()),
   shippingOptionId: z.string().regex(/^melhor-envio:\d+$/, "Selecione uma opção de frete válida"),
+  paymentMethod: z.enum(["PIX", "CARD_BOLETO"], { required_error: "Selecione a forma de pagamento" }),
   saveAddress: z.coerce.boolean().optional().default(false),
   addressLabel: z.string().trim().max(40).optional().or(z.literal("")),
   items: z.array(checkoutItemSchema).min(1, "Seu carrinho está vazio"),

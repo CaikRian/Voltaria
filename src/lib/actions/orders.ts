@@ -24,6 +24,25 @@ export type CheckoutFormState = {
 // Reais → centavos só na fronteira com a API da Mercado Pago (nunca no banco).
 const toReais = (cents: number) => Number((cents / 100).toFixed(2));
 
+function mercadoPagoPaymentMethods(choice: string | null | undefined) {
+  if (choice === "PIX") {
+    return {
+      default_payment_method_id: "pix",
+      excluded_payment_methods: [{ id: "account_money" }],
+      excluded_payment_types: ["credit_card", "debit_card", "ticket", "atm", "prepaid_card"].map((id) => ({ id })),
+      installments: 1,
+    };
+  }
+  if (choice === "CARD_BOLETO") {
+    return {
+      excluded_payment_methods: [{ id: "pix" }],
+      excluded_payment_types: [{ id: "bank_transfer" }],
+      installments: 12,
+    };
+  }
+  return undefined;
+}
+
 // Checkout é fluxo público — SEM requireUser()/requireCapability(). Guest checkout
 // é intencional: Order.userId é opcional, Order.email é o contato obrigatório.
 export async function createOrderAction(
@@ -53,6 +72,7 @@ export async function createOrderAction(
     variantName?: string;
     variantId?: string;
     unitCents: number;
+    originalUnitCents: number;
     qty: number;
   }[] = [];
 
@@ -78,17 +98,23 @@ export async function createOrderAction(
       return { error: `Estoque insuficiente para "${product.name}".` };
     }
 
+    const originalUnitCents = unitCents;
+    if (d.paymentMethod === "PIX") unitCents = Math.round(originalUnitCents * 0.95);
+
     orderItemsData.push({
       productId: product.id,
       productName: product.name,
       variantName: it.variantName,
       variantId,
       unitCents,
+      originalUnitCents,
       qty: it.qty,
     });
   }
 
   const itemsTotalCents = orderItemsData.reduce((sum, i) => sum + i.unitCents * i.qty, 0);
+  const originalItemsTotalCents = orderItemsData.reduce((sum, i) => sum + i.originalUnitCents * i.qty, 0);
+  const discountCents = originalItemsTotalCents - itemsTotalCents;
   if (itemsTotalCents <= 0) return { error: "Carrinho vazio." };
 
   // Recálculo autoritativo de frete a partir do CEP + opção escolhida. Nunca
@@ -113,6 +139,8 @@ export async function createOrderAction(
         data: {
       email: d.email,
       totalCents,
+      paymentChoice: d.paymentMethod,
+      discountCents,
       userId: orderUserId,
       status: "AGUARDANDO_PAGAMENTO", // novo status inicial
       stockReservationStatus: "RESERVED",
@@ -212,6 +240,7 @@ export async function createOrderAction(
         },
         ...(isPublicAppUrl ? { auto_return: "approved" as const } : {}),
         notification_url: `${process.env.APP_URL}/api/webhooks/mercadopago`,
+        payment_methods: mercadoPagoPaymentMethods(d.paymentMethod),
       },
     });
 
@@ -625,6 +654,7 @@ export async function retryPaymentAction(orderId: string): Promise<CheckoutFormS
         },
         ...(isPublicAppUrl ? { auto_return: "approved" as const } : {}),
         notification_url: `${process.env.APP_URL}/api/webhooks/mercadopago`,
+        ...(mercadoPagoPaymentMethods(order.paymentChoice) ? { payment_methods: mercadoPagoPaymentMethods(order.paymentChoice) } : {}),
       },
     });
 

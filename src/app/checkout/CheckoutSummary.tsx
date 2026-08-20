@@ -9,12 +9,16 @@ type Props = {
   error?: string;
   shippingCents: number | null; // null = nenhuma opção de frete selecionada ainda
   shippingLabel: string | null;
+  paymentMethod: "PIX" | "CARD_BOLETO";
 };
 
-export function CheckoutSummary({ pending, error, shippingCents, shippingLabel }: Props) {
+export function CheckoutSummary({ pending, error, shippingCents, shippingLabel, paymentMethod }: Props) {
   const { items, totalCents, clear } = useCart();
   const total = totalCents();
-  const grandTotal = total + (shippingCents ?? 0);
+  const discountedTotal = items.reduce((sum, item) => sum + Math.round(item.unitCents * 0.95) * item.qty, 0);
+  const discountCents = paymentMethod === "PIX" ? total - discountedTotal : 0;
+  const payableSubtotal = total - discountCents;
+  const grandTotal = payableSubtotal + (shippingCents ?? 0);
   const canSubmit = !pending && items.length > 0 && shippingCents !== null;
 
   return (
@@ -39,9 +43,10 @@ export function CheckoutSummary({ pending, error, shippingCents, shippingLabel }
 
           <div className="space-y-2 border-t border-line pt-4 text-sm">
             <div className="flex justify-between text-ink-soft">
-              <span>Subtotal</span>
+              <span>Produtos</span>
               <span>{formatBRL(total)}</span>
             </div>
+            {discountCents > 0 && <div className="flex justify-between font-medium text-green-700"><span>Desconto Pix (5%)</span><span>− {formatBRL(discountCents)}</span></div>}
             <div className="flex justify-between text-ink-soft">
               <span>Frete{shippingLabel ? ` (${shippingLabel})` : ""}</span>
               <span>

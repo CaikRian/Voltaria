@@ -43,6 +43,7 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
     label: item.productName,
     href: slugByProductId[item.productId] ? `/produtos/${slugByProductId[item.productId]}` : "/produtos",
   }));
+  const originalProductsCents = order.items.reduce((sum, item) => sum + (item.originalUnitCents ?? item.unitCents) * item.qty, 0);
 
   return (
     <div className="container-x py-8 sm:py-10">
@@ -92,9 +93,10 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
             {order.shippingCents != null ? (
               <div className="mt-3 flex flex-col gap-2 rounded-xl bg-mist p-4 text-sm">
                 <div className="flex justify-between text-ink-soft">
-                  <span>Subtotal</span>
-                  <span>{formatBRL(order.totalCents - order.shippingCents)}</span>
+                  <span>Produtos</span>
+                  <span>{formatBRL(originalProductsCents)}</span>
                 </div>
+                {order.discountCents > 0 && <div className="flex justify-between font-medium text-green-700"><span>Desconto Pix (5%)</span><span>− {formatBRL(order.discountCents)}</span></div>}
                 <div className="flex justify-between text-ink-soft">
                   <span>Frete{order.shippingMethod ? ` (${order.shippingMethod})` : ""}</span>
                   <span>{order.shippingCents === 0 ? "Grátis" : formatBRL(order.shippingCents)}</span>
@@ -156,7 +158,7 @@ export default async function ContaPedidoPage({ params }: { params: Params }) {
                 <dd>
                   {order.mpPaymentMethod
                     ? MP_PAYMENT_METHOD_LABELS[order.mpPaymentMethod] ?? order.mpPaymentMethod
-                    : "—"}
+                    : order.paymentChoice === "PIX" ? "Pix (selecionado)" : order.paymentChoice === "CARD_BOLETO" ? "Cartão ou boleto (selecionado)" : "—"}
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-3 border-t border-line pt-2.5">

@@ -54,6 +54,7 @@ export function CheckoutForm({ contactDefaults, addresses, isLoggedIn }: Props) 
   const [shippingStatus, setShippingStatus] = useState<"idle" | "loading" | "error">("idle");
   const [saveAddress, setSaveAddress] = useState(false);
   const [addressLabel, setAddressLabel] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"PIX" | "CARD_BOLETO">("PIX");
 
   const savedSelected = addresses.find((a) => a.id === selectedAddressId) ?? null;
   const effectiveAddress: AddressFields | null =
@@ -143,6 +144,7 @@ export function CheckoutForm({ contactDefaults, addresses, isLoggedIn }: Props) 
         document: contact.document,
         ...effectiveAddress,
         shippingOptionId,
+        paymentMethod,
         saveAddress: addressMode === "new" ? saveAddress : false,
         addressLabel,
         items: items.map((i) => ({ productId: i.productId, variantName: i.variantName, qty: i.qty })),
@@ -393,11 +395,23 @@ export function CheckoutForm({ contactDefaults, addresses, isLoggedIn }: Props) 
           )}
         </div>
 
-        <div className="rounded-xl2 border border-dashed border-line bg-mist p-6 text-center text-sm text-ink-muted">
-          <p className="font-medium text-ink">Mercado Pago</p>
-          <p className="mt-1">
-            Você será redirecionado para pagar com PIX, cartão ou boleto (ambiente de teste).
-          </p>
+        <div className="rounded-xl2 border border-line bg-paper p-6 shadow-card">
+          <h2 className="mb-4 font-display text-lg font-semibold">Forma de pagamento</h2>
+          <div className="grid gap-3">
+            <label className={`cursor-pointer rounded-xl border p-4 ${paymentMethod === "PIX" ? "border-brand bg-brand-soft" : "border-line hover:bg-mist"}`}>
+              <span className="flex items-start gap-3">
+                <input type="radio" name="paymentMethod" value="PIX" checked={paymentMethod === "PIX"} onChange={() => setPaymentMethod("PIX")} className="mt-1" />
+                <span><span className="font-semibold text-ink">Pix</span><br /><span className="text-sm text-ink-muted">5% de desconto nos produtos. O frete permanece com o valor integral.</span></span>
+              </span>
+            </label>
+            <label className={`cursor-pointer rounded-xl border p-4 ${paymentMethod === "CARD_BOLETO" ? "border-brand bg-brand-soft" : "border-line hover:bg-mist"}`}>
+              <span className="flex items-start gap-3">
+                <input type="radio" name="paymentMethod" value="CARD_BOLETO" checked={paymentMethod === "CARD_BOLETO"} onChange={() => setPaymentMethod("CARD_BOLETO")} className="mt-1" />
+                <span><span className="font-semibold text-ink">Cartão ou boleto</span><br /><span className="text-sm text-ink-muted">Pagamento pelo valor normal dos produtos.</span></span>
+              </span>
+            </label>
+          </div>
+          <p className="mt-4 text-xs text-ink-muted">Você será redirecionado com segurança para o Mercado Pago.</p>
         </div>
       </div>
 
@@ -406,6 +420,7 @@ export function CheckoutForm({ contactDefaults, addresses, isLoggedIn }: Props) 
         error={state.error}
         shippingCents={selectedOption?.priceCents ?? null}
         shippingLabel={selectedOption?.label ?? null}
+        paymentMethod={paymentMethod}
       />
     </form>
   );

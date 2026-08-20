@@ -36,7 +36,7 @@ export type ReceiptPayment = {
   money_release_status?: string;
 };
 
-type ReceiptItem = { id: string; productName: string; variantName?: string | null; unitCents: number; qty: number };
+type ReceiptItem = { id: string; productName: string; variantName?: string | null; unitCents: number; originalUnitCents?: number | null; qty: number };
 type ReceiptReturn = { id: string; status: string; requestType: string; approvedCents: number | null; requestedCents: number; refundedAt: Date | string | null; mpRefundId: string | null };
 
 type ReceiptOrderDetails = {
@@ -54,6 +54,8 @@ type ReceiptOrderDetails = {
   shipState: string | null;
   shipCep: string | null;
   refundedCents: number;
+  paymentChoice: string | null;
+  discountCents: number;
   returns: ReceiptReturn[];
 };
 
@@ -111,6 +113,7 @@ export function PaymentReceiptCard({
       ? accountCpf.replace(/\D/g, "") === payerDoc.number.replace(/\D/g, "")
       : null;
   const itemSubtotalCents = items.reduce((sum, item) => sum + item.unitCents * item.qty, 0);
+  const originalItemSubtotalCents = items.reduce((sum, item) => sum + (item.originalUnitCents ?? item.unitCents) * item.qty, 0);
   const refundedCents = Math.max(orderDetails.refundedCents, Math.round((payment.transaction_amount_refunded ?? 0) * 100));
   const confirmedCents = paidCents || totalCents;
   const netAfterRefundCents = Math.max(0, confirmedCents - refundedCents);
@@ -219,7 +222,7 @@ export function PaymentReceiptCard({
             </li>
           ))}
         </ul>
-        <dl className="mt-4 space-y-2 border-t border-line pt-4 text-sm"><div className="flex justify-between"><dt className="text-ink-muted">Subtotal dos produtos</dt><dd>{formatBRL(itemSubtotalCents)}</dd></div><div className="flex justify-between"><dt className="text-ink-muted">Frete</dt><dd>{orderDetails.shippingCents == null ? "—" : formatBRL(orderDetails.shippingCents)}</dd></div><div className="flex justify-between border-t-2 border-ink pt-3 text-lg font-semibold"><dt>Total confirmado</dt><dd>{formatBRL(confirmedCents)}</dd></div>{refundedCents > 0 && <><div className="flex justify-between text-violet-700"><dt>Reembolsos confirmados</dt><dd>− {formatBRL(refundedCents)}</dd></div><div className="flex justify-between rounded-lg bg-violet-50 px-3 py-2 font-semibold"><dt>Valor após reembolsos</dt><dd>{formatBRL(netAfterRefundCents)}</dd></div></>}</dl>
+        <dl className="mt-4 space-y-2 border-t border-line pt-4 text-sm"><div className="flex justify-between"><dt className="text-ink-muted">Subtotal dos produtos</dt><dd>{formatBRL(originalItemSubtotalCents)}</dd></div>{orderDetails.discountCents > 0 && <div className="flex justify-between font-medium text-green-700"><dt>Desconto Pix (5%)</dt><dd>− {formatBRL(orderDetails.discountCents)}</dd></div>}<div className="flex justify-between"><dt className="text-ink-muted">Produtos após desconto</dt><dd>{formatBRL(itemSubtotalCents)}</dd></div><div className="flex justify-between"><dt className="text-ink-muted">Frete</dt><dd>{orderDetails.shippingCents == null ? "—" : formatBRL(orderDetails.shippingCents)}</dd></div><div className="flex justify-between border-t-2 border-ink pt-3 text-lg font-semibold"><dt>Total confirmado</dt><dd>{formatBRL(confirmedCents)}</dd></div>{refundedCents > 0 && <><div className="flex justify-between text-violet-700"><dt>Reembolsos confirmados</dt><dd>− {formatBRL(refundedCents)}</dd></div><div className="flex justify-between rounded-lg bg-violet-50 px-3 py-2 font-semibold"><dt>Valor após reembolsos</dt><dd>{formatBRL(netAfterRefundCents)}</dd></div></>}</dl>
       </section>
 
       {orderDetails.shipStreet && <section className="border-t border-line py-6 text-sm"><p className="font-semibold">Endereço de entrega</p><p className="mt-2 text-ink-soft">{orderDetails.shipName}<br />{orderDetails.shipStreet}, {orderDetails.shipNumber}{orderDetails.shipComplement ? ` — ${orderDetails.shipComplement}` : ""}<br />{orderDetails.shipNeighborhood} · {orderDetails.shipCity}/{orderDetails.shipState}<br />CEP {orderDetails.shipCep}</p></section>}

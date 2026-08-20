@@ -249,6 +249,8 @@ model Order {
   mpPaymentId     String? @unique // setado pelo webhook quando a MP confirma o pagamento
   mpPaymentMethod String? // payment_type_id da MP: pix, credit_card, ticket...
   mpStatusDetail  String? // status_detail bruto da MP (debug de recusas)
+  paymentChoice   String? // PIX | CARD_BOLETO — opção escolhida antes do Checkout Pro
+  discountCents   Int     @default(0) // desconto efetivamente aplicado aos produtos
 
   // --- Endereço de entrega (snapshot no momento da compra) ---
   // Nullable: pedidos antigos (antes desta feature) não têm esses dados; todo
@@ -358,16 +360,17 @@ model IntegrationCredential {
 }
 
 model OrderItem {
-  id          String       @id @default(cuid())
-  order       Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderId     String
-  productId   String
-  productName String // snapshot: nome no momento da compra
-  variantName String?
-  variantId   String? // snapshot técnico para movimentar o estoque sem depender do nome
-  unitCents   Int // preço unitário no momento da compra
-  qty         Int
-  returnItems ReturnItem[]
+  id                String       @id @default(cuid())
+  order             Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId           String
+  productId         String
+  productName       String // snapshot: nome no momento da compra
+  variantName       String?
+  variantId         String? // snapshot técnico para movimentar o estoque sem depender do nome
+  unitCents         Int // preço unitário no momento da compra
+  originalUnitCents Int? // preço antes do desconto; null apenas em pedidos legados
+  qty               Int
+  returnItems       ReturnItem[]
 
   @@index([orderId])
 }

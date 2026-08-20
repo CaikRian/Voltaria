@@ -31,6 +31,7 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
   const canUpdateStatus = can(user?.role, "order:update:status");
   const action = updateOrderStatusAction.bind(null, order.id);
   const trackingUrl = resolveTrackingUrl(order.trackingCode, order.trackingUrl);
+  const originalProductsCents = order.items.reduce((sum, item) => sum + (item.originalUnitCents ?? item.unitCents) * item.qty, 0);
 
   // O chat possui sua própria área completa. O histórico operacional mostra somente
   // eventos do fluxo do pedido, evitando misturar conversa com logística.
@@ -121,9 +122,10 @@ export default async function PainelPedidoPage({ params }: { params: Params }) {
             {order.shippingCents != null ? (
               <div className="mt-3 flex flex-col gap-1 border-t border-line pt-3 text-sm">
                 <div className="flex justify-between text-ink-soft">
-                  <span>Subtotal</span>
-                  <span>{formatBRL(order.totalCents - order.shippingCents)}</span>
+                  <span>Produtos</span>
+                  <span>{formatBRL(originalProductsCents)}</span>
                 </div>
+                {order.discountCents > 0 && <div className="flex justify-between font-medium text-green-700"><span>Desconto Pix (5%)</span><span>− {formatBRL(order.discountCents)}</span></div>}
                 <div className="flex justify-between text-ink-soft">
                   <span>Frete{order.shippingMethod ? ` (${order.shippingMethod})` : ""}</span>
                   <span>{order.shippingCents === 0 ? "Grátis" : formatBRL(order.shippingCents)}</span>

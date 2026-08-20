@@ -58,6 +58,8 @@ export default async function PaymentReceiptPage({ params }: { params: Params })
           shipState: order.shipState,
           shipCep: order.shipCep,
           refundedCents: order.refundedCents,
+          paymentChoice: order.paymentChoice,
+          discountCents: order.discountCents,
           returns: order.returnRequests,
         }}
       />

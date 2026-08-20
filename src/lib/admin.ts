@@ -383,6 +383,8 @@ export async function getAdminOrderReceipt(id: string) {
       createdAt: true,
       totalCents: true,
       shippingCents: true,
+      paymentChoice: true,
+      discountCents: true,
       shippingMethod: true,
       shippingProvider: true,
       shipStreet: true,
@@ -394,7 +396,7 @@ export async function getAdminOrderReceipt(id: string) {
       shipCep: true,
       refundedCents: true,
       mpPaymentId: true,
-      items: { select: { id: true, productName: true, variantName: true, unitCents: true, qty: true } },
+      items: { select: { id: true, productName: true, variantName: true, unitCents: true, originalUnitCents: true, qty: true } },
       returnRequests: {
         select: { id: true, status: true, requestType: true, approvedCents: true, requestedCents: true, refundedAt: true, mpRefundId: true },
         orderBy: { createdAt: "asc" },
