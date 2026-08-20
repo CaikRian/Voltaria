@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { updateOrderStatus } from "@/lib/orders";
 import { melhorEnvioFetch } from "@/lib/melhor-envio";
+import { sendOrderEmail } from "@/lib/transactional-email";
 
 const META: Record<string, { title: string; description: string; labelStatus: string; attention?: boolean }> = {
   "order.created": { title: "Etiqueta adicionada ao carrinho", description: "O envio foi registrado no Melhor Envio.", labelStatus: "CART" },
@@ -29,6 +30,7 @@ export async function recordShippingEvent(input: {
   const meta = shippingEventMeta(input.event, input.status);
   const occurredAt = input.occurredAt ?? new Date();
   const externalEventKey = `${input.labelId}:${input.event}:${occurredAt.toISOString()}`;
+  let eventCreated = false;
   try {
     await prisma.shippingEvent.create({ data: {
       orderId: input.orderId, providerEvent: input.event, providerStatus: input.status,
@@ -36,6 +38,7 @@ export async function recordShippingEvent(input: {
       trackingCode: input.trackingCode, trackingUrl: input.trackingUrl,
       needsAttention: !!meta.attention, externalEventKey, occurredAt,
     } });
+    eventCreated = true;
   } catch (error) {
     if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")) throw error;
   }
@@ -57,6 +60,9 @@ export async function recordShippingEvent(input: {
     await updateOrderStatus(input.orderId, order.status, "PREPARANDO_ENVIO", { note: meta.title, orderData });
   } else {
     await prisma.order.update({ where: { id: input.orderId }, data: orderData });
+  }
+  if (eventCreated && meta.attention) {
+    await sendOrderEmail(input.orderId, "SHIPPING_ATTENTION", { note: input.description || meta.description, trackingCode: input.trackingCode, trackingUrl: input.trackingUrl });
   }
 }
 

@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { cpfSchema } from "@/lib/validators";
+import { isBrevoConfigured, sendBrevoEmail } from "@/lib/brevo-email";
 
 export type RecoveryState = { error?: string; success?: string; maskedEmail?: string; fieldErrors?: Record<string, string[]> };
 
@@ -22,7 +23,7 @@ export async function findAccountEmailAction(_previous: RecoveryState, formData:
 }
 
 export async function requestPasswordResetAction(_previous: RecoveryState, formData: FormData): Promise<RecoveryState> {
-  if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) return { error: "A recuperação por e-mail ainda não foi configurada pela loja. Entre em contato pelo canal de atendimento." };
+  if (!isBrevoConfigured()) return { error: "A recuperação por e-mail ainda não foi configurada pela loja. Entre em contato pelo canal de atendimento." };
   const identifier = String(formData.get("identifier") ?? "").trim().toLowerCase();
   if (!identifier) return { fieldErrors: { identifier: ["Informe seu e-mail ou CPF"] } };
   const digits = identifier.replace(/\D/g, "");
@@ -35,8 +36,8 @@ export async function requestPasswordResetAction(_previous: RecoveryState, formD
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
   await prisma.$transaction([prisma.passwordResetToken.deleteMany({ where: { userId: user.id } }), prisma.passwordResetToken.create({ data: { userId: user.id, tokenHash, expiresAt: new Date(Date.now() + 30 * 60_000) } })]);
   const resetUrl = `${process.env.APP_URL}/redefinir-senha?token=${token}`;
-  const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [user.email], subject: "Redefinição de senha — Heca - Store", html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto"><h2>Redefina sua senha</h2><p>Olá, ${user.name ?? "cliente"}. Recebemos uma solicitação para redefinir a senha da sua conta.</p><p><a href="${resetUrl}" style="display:inline-block;background:#A100FF;color:white;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:bold">Criar nova senha</a></p><p>Este link expira em 30 minutos e só pode ser usado uma vez. Se você não solicitou, ignore este e-mail.</p></div>` }) });
-  if (!response.ok) { console.error("Falha ao enviar recuperação de senha", response.status); return { error: "Não foi possível enviar o e-mail agora. Tente novamente em alguns minutos." }; }
+  const response = await sendBrevoEmail({ to: user.email, toName: user.name, subject: "Redefinição de senha — Heca Store", html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto"><h2>Redefina sua senha</h2><p>Olá, ${user.name ?? "cliente"}. Recebemos uma solicitação para redefinir a senha da sua conta.</p><p><a href="${resetUrl}" style="display:inline-block;background:#A100FF;color:white;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:bold">Criar nova senha</a></p><p>Este link expira em 30 minutos e só pode ser usado uma vez. Se você não solicitou, ignore este e-mail.</p></div>` });
+  if (!response.ok) { console.error("Falha ao enviar recuperação de senha", response.error); return { error: "Não foi possível enviar o e-mail agora. Tente novamente em alguns minutos." }; }
   return generic;
 }
 

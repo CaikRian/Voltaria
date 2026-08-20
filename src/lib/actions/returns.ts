@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, requireCapability } from "@/lib/auth-helpers";
+import { sendOrderEmail } from "@/lib/transactional-email";
 
 export type ReturnActionState = { success?: boolean; error?: string; fieldErrors?: Record<string, string[]> };
 
@@ -62,6 +63,7 @@ export async function createReturnRequestAction(orderId: string, _prev: ReturnAc
       events: { create: { status: "REQUESTED", note: "Solicitação enviada pelo cliente.", actorId: user.id, actorName: user.name || user.email, actorRole: user.role } },
     },
   });
+  await sendOrderEmail(orderId, "RETURN_REQUESTED", { amountCents: requestedCents });
   refresh(orderId);
   return { success: true };
 }
@@ -117,6 +119,7 @@ export async function reviewReturnAction(returnId: string, _prev: ReturnActionSt
       events: { create: { status: approved ? "AWAITING_SHIPMENT" : "REJECTED", note: approved ? "Devolução aprovada; aguardando postagem." : note, actorId: actor.id, actorName: actor.name || actor.email, actorRole: actor.role } },
     } });
   }
+  await sendOrderEmail(request.orderId, approved ? "RETURN_APPROVED" : "RETURN_REJECTED", { note: approved ? (instructions || note) : note });
   refresh(request.orderId);
   return { success: true };
 }
@@ -126,6 +129,7 @@ export async function receiveReturnAction(returnId: string, _prev: ReturnActionS
   const request = await prisma.returnRequest.findUnique({ where: { id: returnId }, select: { orderId: true, status: true } });
   if (!request || !["IN_TRANSIT", "AWAITING_SHIPMENT"].includes(request.status)) return { error: "A devolução não está apta para recebimento." };
   await prisma.returnRequest.update({ where: { id: returnId }, data: { status: "RECEIVED", receivedAt: new Date(), events: { create: { status: "RECEIVED", note: "Pacote recebido pela equipe.", actorId: actor.id, actorName: actor.name || actor.email, actorRole: actor.role } } } });
+  await sendOrderEmail(request.orderId, "RETURN_RECEIVED");
   refresh(request.orderId);
   return { success: true };
 }
@@ -196,6 +200,7 @@ export async function executeRefundAction(returnId: string, _prev: ReturnActionS
         await tx.orderStatusEvent.create({ data: { orderId: order.id, status: "REEMBOLSADO", note: "Pagamento integralmente reembolsado pelo Mercado Pago." } });
       }
     });
+    await sendOrderEmail(request.orderId, "REFUND_CONFIRMED", { amountCents: amount });
     refresh(request.orderId);
     return { success: true };
   } catch (error) {

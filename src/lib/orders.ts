@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { mpClient } from "@/lib/mercadopago";
 import { mapMercadoPagoStatusToOrderStatus } from "@/lib/order-status";
 import { releaseStock, reserveStock } from "@/lib/inventory";
+import { emailKindForOrderStatus, sendOrderEmail } from "@/lib/transactional-email";
 
 // Camada de leitura de pedidos — usada pelas páginas de retorno do checkout,
 // pelo webhook da Mercado Pago e pela área do cliente (/conta/pedidos).
@@ -89,7 +90,7 @@ export async function updateOrderStatus(
   newStatus: string,
   opts?: { note?: string; orderData?: Prisma.OrderUpdateManyMutationInput }
 ) {
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${orderId} FOR UPDATE`;
     const current = await tx.order.findUniqueOrThrow({
       where: { id: orderId },
@@ -135,8 +136,14 @@ export async function updateOrderStatus(
       });
     }
 
-    return tx.order.findUniqueOrThrow({ where: { id: orderId } });
+    const updatedOrder = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+    return { updatedOrder, changed };
   });
+  if (result.changed) {
+    const emailKind = emailKindForOrderStatus(newStatus);
+    if (emailKind) await sendOrderEmail(orderId, emailKind);
+  }
+  return result.updatedOrder;
 }
 
 // Busca o pagamento de verdade na Mercado Pago e atualiza o pedido correspondente.
