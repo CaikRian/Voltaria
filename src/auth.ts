@@ -26,7 +26,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await prisma.user.findUnique({ where: { email } });
 
         // Conta inexistente ou criada só via login social (sem senha).
-        if (!user || !user.passwordHash) return null;
+        if (!user || !user.passwordHash || !user.emailVerified) return null;
 
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) return null;

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireCapability } from "@/lib/auth-helpers";
 import { sanitizeText } from "@/lib/sanitize";
 import { questionSchema, questionAnswerSchema } from "@/lib/validators";
+import { sendQuestionAnsweredEmail } from "@/lib/customer-email";
 
 export type QuestionFormState = {
   error?: string;
@@ -50,8 +51,10 @@ export async function answerQuestionAction(
       answeredBy: user.name ?? user.email,
       answeredAt: new Date(),
     },
-    select: { product: { select: { slug: true } } },
+    select: { user: { select: { email: true, name: true } }, product: { select: { name: true, slug: true } } },
   });
+
+  await sendQuestionAnsweredEmail({ email: question.user.email, name: question.user.name, productName: question.product.name, productSlug: question.product.slug, answer: parsed.data.answer });
 
   revalidatePath("/painel/duvidas");
   revalidatePath(`/produtos/${question.product.slug}`);

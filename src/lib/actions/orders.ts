@@ -14,6 +14,7 @@ import { isValidStatusTransition, type OrderStatus } from "@/lib/order-status";
 import { checkoutSchema, orderStatusSchema, type CheckoutInput } from "@/lib/validators";
 import { InsufficientStockError, reserveStock } from "@/lib/inventory";
 import { cleanupAbandonedOrders } from "@/lib/cleanup-orders";
+import { sendOrderChatEmail } from "@/lib/customer-email";
 
 export type CheckoutFormState = {
   error?: string;
@@ -486,7 +487,7 @@ export async function sendOrderReplyAction(
 
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    select: { id: true, status: true },
+    select: { id: true, status: true, email: true, shipName: true },
   });
 
   if (!order) return { error: "Pedido não encontrado." };
@@ -506,6 +507,7 @@ export async function sendOrderReplyAction(
     where: { id: order.id },
     data: { awaitingReplyFrom: "CLIENTE", chatWaitingSince: new Date(), chatClosedAt: null },
   });
+  await sendOrderChatEmail({ email: order.email, name: order.shipName, orderId: order.id, message: text });
 
   revalidatePath("/painel/pedidos");
   revalidatePath("/painel/conversas");
@@ -529,13 +531,15 @@ export async function closeOrderChatAction(
     return { error: "Você não tem permissão para fechar esta conversa." };
   }
 
-  const order = await prisma.order.findUnique({ where: { id: orderId }, select: { id: true } });
+  const order = await prisma.order.findUnique({ where: { id: orderId }, select: { id: true, email: true, shipName: true, chatClosedAt: true } });
   if (!order) return { error: "Pedido não encontrado." };
+  if (order.chatClosedAt) return { success: true };
 
   await prisma.order.update({
     where: { id: order.id },
     data: { chatClosedAt: new Date() },
   });
+  await sendOrderChatEmail({ email: order.email, name: order.shipName, orderId: order.id, closed: true });
 
   revalidatePath("/painel/pedidos");
   revalidatePath("/painel/conversas");

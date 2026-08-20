@@ -1,15 +1,36 @@
 "use server";
 
+import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
+import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { registerSchema, loginSchema } from "@/lib/validators";
+import { sendVerificationEmail, sendWelcomeEmail } from "@/lib/customer-email";
 
 export type FormState = {
   error?: string;
+  success?: string;
   fieldErrors?: Record<string, string[]>;
 };
+
+function verificationCode() {
+  return crypto.randomBytes(6).toString("hex").toUpperCase();
+}
+
+function hashToken(token: string) {
+  return crypto.createHash("sha256").update(token.trim().toUpperCase()).digest("hex");
+}
+
+async function issueVerification(email: string, name?: string | null) {
+  const code = verificationCode();
+  await prisma.$transaction([
+    prisma.verificationToken.deleteMany({ where: { identifier: email } }),
+    prisma.verificationToken.create({ data: { identifier: email, token: hashToken(code), expires: new Date(Date.now() + 24 * 60 * 60 * 1000) } }),
+  ]);
+  return sendVerificationEmail({ email, name, code });
+}
 
 // --- Cadastro ---
 export async function registerAction(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -62,16 +83,34 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
     if (typeof error === "object" && error && "code" in error && error.code === "P2002") return { error: "E-mail ou CPF já cadastrado." };
     throw error;
   }
+  const sent = await issueVerification(email, name);
+  redirect(`/verificar-email?email=${encodeURIComponent(email)}&enviado=${sent.ok ? "1" : "0"}`);
+}
 
-  // Loga automaticamente após cadastrar e leva para a área do cliente.
-  // (redirectTo lança um redirect que deve propagar — por isso o try/catch abaixo.)
-  try {
-    await signIn("credentials", { email, password, redirectTo: "/conta" });
-  } catch (e) {
-    if (e instanceof AuthError) return { error: "Conta criada, mas falha ao entrar. Tente o login." };
-    throw e; // redirect: precisa propagar
-  }
-  return {};
+export async function verifyEmailAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const email = String(formData.get("email") || "").trim().toLowerCase();
+  const code = String(formData.get("code") || "").trim().toUpperCase();
+  if (!email || !code) return { error: "Informe o e-mail e o código de confirmação." };
+  const token = await prisma.verificationToken.findUnique({ where: { token: hashToken(code) } });
+  if (!token || token.identifier !== email || token.expires < new Date()) return { error: "Código inválido ou expirado. Solicite um novo código." };
+  const user = await prisma.user.findUnique({ where: { email }, select: { id: true, email: true, name: true, emailVerified: true } });
+  if (!user) return { error: "Conta não encontrada." };
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: user.id }, data: { emailVerified: user.emailVerified || new Date() } }),
+    prisma.verificationToken.deleteMany({ where: { identifier: email } }),
+  ]);
+  if (!user.emailVerified) await sendWelcomeEmail(user);
+  return { success: "E-mail confirmado! Sua conta está pronta e você já pode entrar." };
+}
+
+export async function resendVerificationAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const email = String(formData.get("email") || "").trim().toLowerCase();
+  const generic = "Se a conta estiver aguardando confirmação, enviaremos um novo código.";
+  const user = await prisma.user.findUnique({ where: { email }, select: { email: true, name: true, emailVerified: true } });
+  if (!user || user.emailVerified) return { success: generic };
+  const recent = await prisma.verificationToken.findFirst({ where: { identifier: email, expires: { gt: new Date(Date.now() + 23 * 60 * 60 * 1000) } } });
+  if (!recent) await issueVerification(user.email, user.name);
+  return { success: generic };
 }
 
 // --- Login ---

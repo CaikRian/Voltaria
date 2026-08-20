@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, requireStaff } from "@/lib/auth-helpers";
 import { chatEscalationSchema, chatMessageSchema } from "@/lib/validators";
+import { sendGeneralChatEmail } from "@/lib/customer-email";
 
 export type ChatEscalationState = {
   error?: string;
@@ -101,7 +102,7 @@ export async function sendChatStaffMessageAction(
   const parsed = chatMessageSchema.safeParse({ text: formData.get("text") });
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
 
-  const session = await prisma.chatSession.findUnique({ where: { id: sessionId }, select: { id: true } });
+  const session = await prisma.chatSession.findUnique({ where: { id: sessionId }, select: { id: true, email: true, name: true } });
   if (!session) return { error: "Conversa não encontrada." };
 
   await prisma.chatMessage.create({ data: { sessionId, senderRole: staff.role, text: parsed.data.text } });
@@ -109,6 +110,7 @@ export async function sendChatStaffMessageAction(
     where: { id: sessionId },
     data: { awaitingReplyFrom: "VISITANTE", chatWaitingSince: null, chatClosedAt: null },
   });
+  await sendGeneralChatEmail({ email: session.email, name: session.name, sessionId, message: parsed.data.text });
 
   revalidatePath("/painel/chatbot");
   revalidatePath(`/painel/chatbot/${sessionId}`);
@@ -117,7 +119,10 @@ export async function sendChatStaffMessageAction(
 
 export async function closeChatSessionAction(sessionId: string) {
   await requireStaff();
-  await prisma.chatSession.update({ where: { id: sessionId }, data: { chatClosedAt: new Date() } });
+  const current = await prisma.chatSession.findUnique({ where: { id: sessionId }, select: { chatClosedAt: true } });
+  if (!current || current.chatClosedAt) return;
+  const session = await prisma.chatSession.update({ where: { id: sessionId }, data: { chatClosedAt: new Date() }, select: { email: true, name: true } });
+  await sendGeneralChatEmail({ email: session.email, name: session.name, sessionId, closed: true });
   revalidatePath("/painel/chatbot");
   revalidatePath(`/painel/chatbot/${sessionId}`);
 }

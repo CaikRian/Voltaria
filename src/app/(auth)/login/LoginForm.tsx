@@ -56,7 +56,7 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
           /><button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-brand">{showPassword ? "Ocultar" : "Mostrar"}</button></div>
         </label>
 
-        <div className="-mt-1 flex items-center justify-end"><Link href="/recuperar-conta" className="text-xs font-semibold text-brand hover:underline">Esqueci meu e-mail ou senha</Link></div>
+        <div className="-mt-1 flex flex-wrap items-center justify-between gap-2"><Link href="/verificar-email" className="text-xs font-semibold text-brand hover:underline">Confirmar meu e-mail</Link><Link href="/recuperar-conta" className="text-xs font-semibold text-brand hover:underline">Esqueci meu e-mail ou senha</Link></div>
 
         <Button type="submit" size="lg" disabled={pending} className="mt-1 w-full">
           {pending ? "Entrando..." : "Entrar"}
