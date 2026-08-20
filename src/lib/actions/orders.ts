@@ -27,7 +27,6 @@ const toReais = (cents: number) => Number((cents / 100).toFixed(2));
 function mercadoPagoPaymentMethods(choice: string | null | undefined) {
   if (choice === "PIX") {
     return {
-      default_payment_method_id: "pix",
       excluded_payment_types: ["credit_card", "debit_card", "ticket", "atm", "prepaid_card"].map((id) => ({ id })),
       installments: 1,
     };
