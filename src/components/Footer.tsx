@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 export function Footer() {
   return (
@@ -9,7 +9,7 @@ export function Footer() {
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-white font-display font-bold">
               H
             </span>
-            <span className="font-display text-lg font-semibold">Heca - Store</span>
+            <span className="font-display text-lg font-semibold">Heca Store</span>
           </div>
           <p className="mt-3 text-sm text-ink-muted">
             Tecnologia e produtos para facilitar sua rotina, com uma experiência de compra clara e segura.
@@ -45,7 +45,7 @@ export function Footer() {
       </div>
       <div className="border-t border-line">
         <div className="container-x flex flex-col items-center justify-between gap-2 py-6 text-xs text-ink-muted sm:flex-row">
-          <p>© {new Date().getFullYear()} Heca - Store. Todos os direitos reservados.</p>
+          <p>© {new Date().getFullYear()} Heca Store. Todos os direitos reservados.</p>
           <a href="https://github.com/CaikRian" target="_blank" rel="noopener noreferrer" className="font-medium hover:text-brand">Desenvolvido por Caik Rian · GitHub ↗</a>
         </div>
       </div>

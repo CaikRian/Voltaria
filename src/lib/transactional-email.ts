@@ -56,7 +56,7 @@ export async function sendOrderEmail(orderId: string, kind: EmailKind, options: 
     });
     if (!order) return false;
     const copy = COPY[kind];
-    const siteUrl = (process.env.APP_URL || "https://voltaria.vercel.app").replace(/\/$/, "");
+    const siteUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
     const orderUrl = `${siteUrl}/conta/pedidos/${encodeURIComponent(order.id)}`;
     const trackingCode = options.trackingCode || order.trackingCode;
     const trackingUrl = options.trackingUrl || order.trackingUrl;

@@ -28,7 +28,7 @@ Use este checklist para acompanhar o progresso do seu deployment.
   cd minha-loja_v3
   git init
   git add .
-  git commit -m "Initial commit: Voltaria e-commerce"
+  git commit -m "Initial commit: Heca Store e-commerce"
   ```
 - [ ] Criar repositório em https://github.com/new
 - [ ] Conectar e fazer push:
@@ -72,8 +72,8 @@ Na tela de configuração, adicionar TODAS estas variáveis:
 - [ ] Página inicial carrega sem erros
 - [ ] Pode navegar pelos produtos
 - [ ] Carrinho funciona (adicionar/remover itens)
-- [ ] Login funciona com `cliente@voltaria.com` / `Senha123`
-- [ ] Painel do vendedor funciona com `vendedor@voltaria.com` / `Senha123`
+- [ ] Login funciona com `cliente@hecastore.com` / `Senha123`
+- [ ] Painel do vendedor funciona com `vendedor@hecastore.com` / `Senha123`
 
 ### Testar checkout (opcional)
 - [ ] Ir para um produto

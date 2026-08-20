@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { getFeaturedProducts, getCategories, getTrendingProducts } from "@/lib/products";
 import { ProductCard } from "@/components/ProductCard";
 import { ButtonLink } from "@/components/ui/Button";
@@ -103,7 +103,7 @@ export default async function HomePage() {
       {/* Destaques */}
       <section className="container-x py-12 sm:py-16">
         <div className="mb-6 flex items-end justify-between">
-          <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">Escolhas da Heca - Store</p><h2 className="mt-2 font-display text-2xl font-semibold sm:text-3xl">Ofertas para aproveitar</h2></div>
+          <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">Escolhas da Heca Store</p><h2 className="mt-2 font-display text-2xl font-semibold sm:text-3xl">Ofertas para aproveitar</h2></div>
           <Link href="/produtos" className="text-sm font-medium text-brand hover:underline">
             Ver tudo →
           </Link>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
@@ -35,7 +35,7 @@ export function BotMenu({
 }) {
   const [screen, setScreen] = useState<Screen>("menu");
   const [transcript, setTranscript] = useState<Bubble[]>([
-    { id: nextId(), from: "bot", node: "Oi! Eu sou a Bia 👋 Assistente virtual da Heca - Store. Como posso ajudar?" },
+    { id: nextId(), from: "bot", node: "Oi! Eu sou a Bia 👋 Assistente virtual da Heca Store. Como posso ajudar?" },
   ]);
   const [ctx, setCtx] = useState<Contexto | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -202,7 +202,7 @@ function TrocasAnswer({ onEscalate }: { onEscalate: () => void }) {
 function EmpresaAnswer() {
   return (
     <div className="space-y-2">
-      <p>A Heca - Store é uma loja de tecnologia e produtos pro dia a dia, com foco numa experiência de compra clara e segura. Estamos sempre evoluindo!</p>
+      <p>A Heca Store é uma loja de tecnologia e produtos pro dia a dia, com foco numa experiência de compra clara e segura. Estamos sempre evoluindo!</p>
       <Link href="/sobre" className="font-semibold text-brand hover:underline">Saiba mais sobre nós →</Link>
     </div>
   );

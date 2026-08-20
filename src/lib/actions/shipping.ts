@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -82,7 +82,7 @@ export async function buyShippingLabelAction(orderId: string, _prev: ShippingAct
         service: Number(order.shippingServiceId), from: sender(),
         to: { name: order.shipName, email: order.email, phone, document, state_register: "ISENTO", address: order.shipStreet, complement: order.shipComplement || "", number: order.shipNumber, district: order.shipNeighborhood, city: order.shipCity, postal_code: digits(order.shipCep), country_id: "BR", state_abbr: order.shipState },
         products: order.items.map((item) => ({ name: item.variantName ? `${item.productName} - ${item.variantName}` : item.productName, quantity: String(item.qty), unitary_value: (item.unitCents / 100).toFixed(2) })),
-        volumes, options: { platform: "Heca - Store", reminder: `Pedido ${order.id.slice(-8)}`, insurance_value: Number(((order.totalCents - (order.shippingCents || 0)) / 100).toFixed(2)), receipt: false, own_hand: false, reverse: false, invoice: { key: invoiceKey }, tags: [{ tag: order.id, url: `${requiredEnv("APP_URL")}/painel/pedidos/${order.id}` }] },
+        volumes, options: { platform: "Heca Store", reminder: `Pedido ${order.id.slice(-8)}`, insurance_value: Number(((order.totalCents - (order.shippingCents || 0)) / 100).toFixed(2)), receipt: false, own_hand: false, reverse: false, invoice: { key: invoiceKey }, tags: [{ tag: order.id, url: `${requiredEnv("APP_URL")}/painel/pedidos/${order.id}` }] },
       }) });
       labelId = String(cart.id || "");
       if (!labelId) throw new Error("Melhor Envio não retornou o ID da etiqueta.");

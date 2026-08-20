@@ -1,4 +1,4 @@
-# Heca - Store — E-commerce (Next.js 15 + Prisma)
+# Heca Store — E-commerce (Next.js 15 + Prisma)
 
 Loja de eletrônicos e produtos gerais. Base pronta para produção: catálogo,
 carrinho persistente, checkout preparado para Mercado Pago, SEO e design responsivo.

@@ -1,7 +1,7 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { OrderStatusView } from "../OrderStatusView";
 
-export const metadata: Metadata = { title: "Pagamento não aprovado — Heca - Store" };
+export const metadata: Metadata = { title: "Pagamento não aprovado — Heca Store" };
 
 type SearchParams = Promise<{ order?: string }>;
 

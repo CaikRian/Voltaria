@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getProductBySlug, getRelatedProducts } from "@/lib/products";
@@ -60,7 +60,7 @@ export default async function ProductPage({ params }: { params: Params }) {
     name: product.name,
     description: product.description,
     image: productImages,
-    brand: { "@type": "Brand", name: product.brand ?? "Heca - Store" },
+    brand: { "@type": "Brand", name: product.brand ?? "Heca Store" },
     ...(rating.count > 0 ? { aggregateRating: { "@type": "AggregateRating", ratingValue: rating.average.toFixed(1), reviewCount: rating.count } } : {}),
     additionalProperty: [
       { "@type": "PropertyValue", name: "Peso embalado", value: weightLabel },

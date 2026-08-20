@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useOptimistic } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -97,7 +97,7 @@ export function ReviewsPanel({ reviews, form }: Props) {
                   {r.pending ? "Enviando..." : new Date(r.createdAt).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                 </span>
               </div>
-              <p className="mt-1 text-sm font-medium">{r.user.name ?? "Cliente Heca - Store"}</p>
+              <p className="mt-1 text-sm font-medium">{r.user.name ?? "Cliente Heca Store"}</p>
               {r.comment && <p className="mt-1 text-sm text-ink-soft">{r.comment}</p>}
             </motion.li>
           ))}

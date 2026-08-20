@@ -18,7 +18,7 @@ Este documento orienta como publicar seu projeto **gratuitamente** usando Vercel
 ### 1.2 Criar um projeto
 1. Clique em "New Project"
 2. Escolha a organização padrão
-3. Nome: `voltaria` (ou outro)
+3. Nome: `heca-store` (ou outro)
 4. Senha: crie uma senha forte (anote!)
 5. Região: deixe a padrão
 6. Clique em "Create new project" e aguarde ~2 minutos
@@ -58,7 +58,7 @@ cd c:\Users\Caik Rian\Downloads\minha-loja_v3\minha-loja_v3
 
 git init
 git add .
-git commit -m "Initial commit: Voltaria e-commerce"
+git commit -m "Initial commit: Heca Store e-commerce"
 ```
 
 ### 3.2 Criar repositório no GitHub

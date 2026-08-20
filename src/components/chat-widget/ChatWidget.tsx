@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -59,7 +59,7 @@ export function ChatWidget() {
             <div>
               <p className="font-display text-sm font-semibold">Bia</p>
               <p className="text-[11px] text-white/70">
-                {sessionId ? `Protocolo #${sessionId.slice(-8).toUpperCase()}` : "Assistente virtual · Heca - Store"}
+                {sessionId ? `Protocolo #${sessionId.slice(-8).toUpperCase()}` : "Assistente virtual · Heca Store"}
               </p>
             </div>
             <button onClick={close} aria-label="Fechar chat" className="grid h-7 w-7 place-items-center rounded-lg hover:bg-white/10">✕</button>

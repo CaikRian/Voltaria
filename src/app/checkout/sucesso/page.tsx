@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { reconcilePaymentStatus } from "@/lib/orders";
 import { OrderStatusView } from "../OrderStatusView";
 
-export const metadata: Metadata = { title: "Pedido confirmado — Heca - Store" };
+export const metadata: Metadata = { title: "Pedido confirmado — Heca Store" };
 
 // A MP manda "payment_id" (novo) ou "collection_id" (legado) no redirect — os
 // dois são o mesmo id de pagamento.

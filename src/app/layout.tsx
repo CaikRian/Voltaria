@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
@@ -22,15 +22,15 @@ const display = Space_Grotesk({
 export const metadata: Metadata = {
   metadataBase: new URL("https://hecabrasil.com.br"),
   title: {
-    default: "Heca - Store — Eletrônicos e produtos gerais",
-    template: "%s | Heca - Store",
+    default: "Heca Store — Eletrônicos e produtos gerais",
+    template: "%s | Heca Store",
   },
   description:
     "Smartphones, notebooks, áudio, games e produtos para casa com os melhores preços e entrega para todo o Brasil.",
   openGraph: {
     type: "website",
     locale: "pt_BR",
-    siteName: "Heca - Store",
+    siteName: "Heca Store",
   },
 };
 

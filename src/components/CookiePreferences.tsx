@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-export const COOKIE_PREFERENCES_KEY = "voltaria-cookie-preferences-v1";
+export const COOKIE_PREFERENCES_KEY = "heca-store-cookie-preferences-v1";
 type Preferences = { necessary: true; analytics: boolean; marketing: boolean; updatedAt: string };
 
 export function saveCookiePreferences(analytics: boolean, marketing: boolean) {
   const value: Preferences = { necessary: true, analytics, marketing, updatedAt: new Date().toISOString() };
   localStorage.setItem(COOKIE_PREFERENCES_KEY, JSON.stringify(value));
-  window.dispatchEvent(new CustomEvent("voltaria:cookie-preferences", { detail: value }));
+  window.dispatchEvent(new CustomEvent("heca-store:cookie-preferences", { detail: value }));
 }
 
 function Toggle({ checked, onChange, disabled, label, description }: { checked: boolean; onChange?: (value: boolean) => void; disabled?: boolean; label: string; description: string }) {

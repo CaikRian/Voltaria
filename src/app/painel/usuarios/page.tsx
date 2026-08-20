@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { requireCapability } from "@/lib/auth-helpers";
 import { getAdminUsers } from "@/lib/admin";
 import { updateUserRoleAction } from "@/lib/actions/users";
@@ -18,7 +18,7 @@ export default async function PainelUsuariosPage({ searchParams }: { searchParam
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-xl2 bg-gradient-to-br from-slate-900 via-brand-dark to-brand p-6 text-white shadow-pop"><div className="absolute -right-12 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" /><div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-white/60">Acessos e permissões</p><h2 className="mt-1 font-display text-3xl font-semibold">Equipe Heca - Store</h2><p className="mt-2 text-sm text-white/70">Crie acessos, defina responsabilidades e mantenha o controle da operação.</p></div><div className="rounded-xl bg-white/10 px-4 py-3 text-center"><p className="font-display text-2xl font-bold">{users.length}</p><p className="text-xs text-white/65">resultado(s)</p></div></div></section>
+      <section className="relative overflow-hidden rounded-xl2 bg-gradient-to-br from-slate-900 via-brand-dark to-brand p-6 text-white shadow-pop"><div className="absolute -right-12 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" /><div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-white/60">Acessos e permissões</p><h2 className="mt-1 font-display text-3xl font-semibold">Equipe Heca Store</h2><p className="mt-2 text-sm text-white/70">Crie acessos, defina responsabilidades e mantenha o controle da operação.</p></div><div className="rounded-xl bg-white/10 px-4 py-3 text-center"><p className="font-display text-2xl font-bold">{users.length}</p><p className="text-xs text-white/65">resultado(s)</p></div></div></section>
 
       {actingUser.role === "ADMIN" && <CreateTeamMemberForm />}
 

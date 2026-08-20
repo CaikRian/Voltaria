@@ -117,7 +117,7 @@ npm run db:studio
 
 **Login como cliente:**
 ```bash
-# Email: cliente@voltaria.com
+# Email: cliente@hecastore.com
 # Senha: Senha123
 # Ir a: /conta/pedidos
 

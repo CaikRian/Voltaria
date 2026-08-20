@@ -2,7 +2,7 @@
 
 ## 🎯 Contexto do Projeto
 
-**Projeto**: Voltaria — E-commerce de eletrônicos e produtos gerais  
+**Projeto**: Heca Store — E-commerce de eletrônicos e produtos gerais
 **Status**: MVP funcional com dashboard do vendedor e pedidos operacionais  
 **Stack**: Next.js 15 + React 19 + TypeScript + Prisma + Auth.js + Tailwind CSS + Zustand
 
@@ -167,10 +167,10 @@ git push -u origin main
 ## 🔐 Credenciais de Teste (Local)
 
 Usuários criados pelo seed com senha `Senha123`:
-- `admin@voltaria.com` (ADMIN)
-- `gerente@voltaria.com` (GERENTE)
-- `vendedor@voltaria.com` (VENDEDOR) ← para testar painel
-- `cliente@voltaria.com` (CLIENTE) ← para testar checkout
+- `admin@hecastore.com` (ADMIN)
+- `gerente@hecastore.com` (GERENTE)
+- `vendedor@hecastore.com` (VENDEDOR) ← para testar painel
+- `cliente@hecastore.com` (CLIENTE) ← para testar checkout
 
 ---
 

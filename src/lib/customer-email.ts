@@ -14,19 +14,19 @@ function button(url: string, label: string) {
 }
 
 export async function sendVerificationEmail(input: { email: string; name?: string | null; code: string }) {
-  const siteUrl = (process.env.APP_URL || "https://voltaria.vercel.app").replace(/\/$/, "");
+  const siteUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
   const url = `${siteUrl}/verificar-email?email=${encodeURIComponent(input.email)}&codigo=${encodeURIComponent(input.code)}`;
   const content = `<div style="background:#f7f4fa;border-radius:12px;padding:18px;margin:22px 0;text-align:center"><p style="margin:0 0 8px;color:#6b6470">Código de confirmação</p><strong style="font-size:24px;letter-spacing:4px">${escapeHtml(input.code)}</strong><p style="font-size:12px;color:#777;margin-bottom:0">Válido por 24 horas</p></div>${button(url, "Confirmar meu e-mail")}`;
   return sendBrevoEmail({ to: input.email, toName: input.name, subject: "Confirme seu e-mail — Heca Store", html: layout(input.name, "Confirme seu e-mail", "Use o código abaixo ou clique no botão para concluir a criação da sua conta.", content) });
 }
 
 export async function sendWelcomeEmail(input: { email: string; name?: string | null }) {
-  const siteUrl = (process.env.APP_URL || "https://voltaria.vercel.app").replace(/\/$/, "");
+  const siteUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
   return sendBrevoEmail({ to: input.email, toName: input.name, subject: "Boas-vindas à Heca Store", html: layout(input.name, "Sua conta está pronta!", "Seu e-mail foi confirmado. Agora você pode entrar, comprar com mais rapidez e acompanhar pedidos e entregas em um só lugar.", button(`${siteUrl}/login`, "Entrar na minha conta")) });
 }
 
 export async function sendOrderChatEmail(input: { email: string; name?: string | null; orderId: string; message?: string | null; closed?: boolean }) {
-  const siteUrl = (process.env.APP_URL || "https://voltaria.vercel.app").replace(/\/$/, "");
+  const siteUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
   const title = input.closed ? "Conversa encerrada" : "A equipe respondeu seu pedido";
   const message = input.closed ? "A conversa foi marcada como resolvida. Você pode enviar uma nova mensagem pelo pedido se ainda precisar de ajuda." : "Há uma nova resposta da equipe aguardando você.";
   const excerpt = input.message ? `<div style="background:#f7f4fa;border-radius:12px;padding:16px;margin:20px 0"><strong>Resposta:</strong><p style="margin-bottom:0">${escapeHtml(input.message.slice(0, 500))}</p></div>` : "";
@@ -34,13 +34,13 @@ export async function sendOrderChatEmail(input: { email: string; name?: string |
 }
 
 export async function sendQuestionAnsweredEmail(input: { email: string; name?: string | null; productName: string; productSlug: string; answer: string }) {
-  const siteUrl = (process.env.APP_URL || "https://voltaria.vercel.app").replace(/\/$/, "");
+  const siteUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
   const content = `<div style="background:#f7f4fa;border-radius:12px;padding:16px;margin:20px 0"><strong>${escapeHtml(input.productName)}</strong><p style="margin-bottom:0">${escapeHtml(input.answer)}</p></div>${button(`${siteUrl}/produtos/${encodeURIComponent(input.productSlug)}`, "Ver resposta no produto")}`;
   return sendBrevoEmail({ to: input.email, toName: input.name, subject: `Sua dúvida sobre ${input.productName} foi respondida`, html: layout(input.name, "Sua dúvida foi respondida", "A equipe publicou uma resposta para sua pergunta sobre o produto.", content) });
 }
 
 export async function sendGeneralChatEmail(input: { email: string; name?: string | null; sessionId: string; message?: string | null; closed?: boolean }) {
-  const siteUrl = (process.env.APP_URL || "https://voltaria.vercel.app").replace(/\/$/, "");
+  const siteUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
   const title = input.closed ? "Atendimento encerrado" : "Você recebeu uma resposta";
   const text = input.closed ? "Seu atendimento foi marcado como concluído." : "Nossa equipe respondeu sua conversa no atendimento do site.";
   const excerpt = input.message ? `<div style="background:#f7f4fa;border-radius:12px;padding:16px;margin:20px 0">${escapeHtml(input.message.slice(0, 500))}</div>` : "";

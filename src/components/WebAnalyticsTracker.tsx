@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { COOKIE_PREFERENCES_KEY } from "@/components/CookiePreferences";
 
-const VISITOR_KEY = "voltaria-anonymous-visitor-v1";
-const SESSION_KEY = "voltaria-analytics-session-v1";
+const VISITOR_KEY = "heca-store-anonymous-visitor-v1";
+const SESSION_KEY = "heca-store-analytics-session-v1";
 type ActiveVisit = { id: string; startedAt: number };
 function consented() { try { return !!JSON.parse(localStorage.getItem(COOKIE_PREFERENCES_KEY) ?? "null")?.analytics; } catch { return false; } }
 function identifier(storage: Storage, key: string) { let value = storage.getItem(key); if (!value) { value = crypto.randomUUID(); storage.setItem(key, value); } return value; }
@@ -21,7 +21,7 @@ export function WebAnalyticsTracker() {
 
   useEffect(() => {
     const sync = () => { const value = consented(); setAllowed(value); if (!value) localStorage.removeItem(VISITOR_KEY); };
-    sync(); window.addEventListener("voltaria:cookie-preferences", sync); return () => window.removeEventListener("voltaria:cookie-preferences", sync);
+    sync(); window.addEventListener("heca-store:cookie-preferences", sync); return () => window.removeEventListener("heca-store:cookie-preferences", sync);
   }, []);
 
   useEffect(() => {

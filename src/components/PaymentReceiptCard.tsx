@@ -1,4 +1,4 @@
-import { formatBRL } from "@/lib/format";
+﻿import { formatBRL } from "@/lib/format";
 import { MP_PAYMENT_METHOD_LABELS } from "@/lib/mercadopago";
 
 // Só os campos do retorno da Payment API que a gente realmente usa — evita
@@ -122,7 +122,7 @@ export function PaymentReceiptCard({
     <main className="mx-auto max-w-3xl rounded-xl2 border border-line bg-paper p-6 sm:p-10 print:max-w-none print:rounded-none print:border-0 print:p-0">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line pb-6">
         <div>
-          <p className="font-display text-2xl font-semibold">Heca - Store</p>
+          <p className="font-display text-2xl font-semibold">Heca Store</p>
           <p className="mt-1 text-sm text-ink-muted">{variant === "staff" ? "Comprovante de pagamento · uso interno" : "Comprovante de pagamento"}</p>
         </div>
         <div className="flex flex-col items-end gap-2">

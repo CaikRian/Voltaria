@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth-helpers";
@@ -42,7 +42,7 @@ export default async function ContaDadosPage() {
         <aside className="space-y-4">
           <div className="rounded-xl2 border border-line bg-gradient-to-br from-brand-soft to-paper p-5 shadow-card">
             <div className="grid h-14 w-14 place-items-center rounded-2xl bg-brand text-xl font-bold text-white">{(account.name || account.email).charAt(0).toUpperCase()}</div>
-            <p className="mt-4 font-semibold">{account.name || "Cliente Heca - Store"}</p><p className="mt-0.5 break-all text-sm text-ink-muted">{account.email}</p>
+            <p className="mt-4 font-semibold">{account.name || "Cliente Heca Store"}</p><p className="mt-0.5 break-all text-sm text-ink-muted">{account.email}</p>
             <p className="mt-4 text-xs text-ink-muted">Cliente desde {account.createdAt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", month: "long", year: "numeric" })}</p>
           </div>
           <div className="grid grid-cols-3 gap-2">

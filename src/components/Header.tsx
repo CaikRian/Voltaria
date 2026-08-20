@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -79,7 +79,7 @@ export function Header() {
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-white font-display font-bold">
             H
           </span>
-          <span className="hidden font-display text-lg font-semibold sm:block">Heca - Store</span>
+          <span className="hidden font-display text-lg font-semibold sm:block">Heca Store</span>
         </Link>
 
         {/* Busca */}

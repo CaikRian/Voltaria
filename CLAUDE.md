@@ -1,11 +1,11 @@
-# CLAUDE.md — Voltaria (E-commerce)
+# CLAUDE.md — Heca Store (E-commerce)
 
 Este arquivo orienta o Claude Code. Leia antes de qualquer alteração e siga as
 convenções abaixo. Quando propuser mudanças grandes, use o **plan mode** e espere aprovação.
 
 ## Visão geral
 
-E-commerce de eletrônicos e produtos gerais ("Voltaria"). Loja de escala pequena
+E-commerce de eletrônicos e produtos gerais ("Heca Store"). Loja de escala pequena
 (até ~100 produtos, poucos pedidos/dia) com prioridade em **baixo custo** e **fácil manutenção**.
 O dono é dev, então o código deve ser limpo e explicado — sem gambiarra.
 
@@ -94,8 +94,8 @@ com a função `can(role, capability)`. Regras-chave:
 
 ### Usuários de teste (senha: `Senha123`)
 
-- `admin@voltaria.com` (ADMIN), `gerente@voltaria.com` (GERENTE),
-  `vendedor@voltaria.com` (VENDEDOR), `cliente@voltaria.com` (CLIENTE)
+- `admin@hecastore.com` (ADMIN), `gerente@hecastore.com` (GERENTE),
+  `vendedor@hecastore.com` (VENDEDOR), `cliente@hecastore.com` (CLIENTE)
 
 ## Limitações conhecidas / gotchas
 

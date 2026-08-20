@@ -1,4 +1,4 @@
-import type { getCurrentUser } from "@/lib/auth-helpers";
+﻿import type { getCurrentUser } from "@/lib/auth-helpers";
 import { getProductQuestions } from "@/lib/questions";
 import { can } from "@/lib/permissions";
 import { askQuestionAction } from "@/lib/actions/questions";
@@ -31,7 +31,7 @@ export async function QuestionsSection({ productId, productSlug, user }: Props) 
         )}
         {questions.map((q) => (
           <li key={q.id} className="rounded-xl2 border border-line bg-paper p-4">
-            <p className="text-sm font-medium">{q.user.name ?? "Cliente Heca - Store"} perguntou:</p>
+            <p className="text-sm font-medium">{q.user.name ?? "Cliente Heca Store"} perguntou:</p>
             <p className="mt-1 text-sm text-ink-soft">{q.question}</p>
             {q.answer ? (
               <div className="mt-3 rounded-lg bg-mist p-3">
