@@ -57,12 +57,8 @@ export default async function PaymentReceiptPage({ params }: { params: Params })
           shipCity: order.shipCity,
           shipState: order.shipState,
           shipCep: order.shipCep,
-          trackingCode: order.trackingCode,
-          trackingUrl: order.trackingUrl,
-          shippingLabelStatus: order.shippingLabelStatus,
           refundedCents: order.refundedCents,
           returns: order.returnRequests,
-          shippingEvents: order.shippingEvents,
         }}
       />
     </div>

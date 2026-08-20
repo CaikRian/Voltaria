@@ -5,9 +5,11 @@ import { SellerDashboard } from "./SellerDashboard";
 
 export const metadata: Metadata = { title: "Painel" };
 
-export default async function PainelPage() {
-  const user = await requireStaff();
-  const summary = await getSellerDashboardSummary();
+type SearchParams = Promise<{ integracao?: string }>;
 
-  return <SellerDashboard name={user.name} role={user.role} summary={summary} />;
+export default async function PainelPage({ searchParams }: { searchParams: SearchParams }) {
+  const user = await requireStaff();
+  const [summary, params] = await Promise.all([getSellerDashboardSummary(), searchParams]);
+
+  return <SellerDashboard name={user.name} role={user.role} summary={summary} integrationResult={params.integracao} />;
 }

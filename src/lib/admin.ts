@@ -146,7 +146,7 @@ export async function getSellerDashboardSummary() {
   const startOfMonth = new Date(Date.UTC(brasiliaParts.year, brasiliaParts.month - 1, 1, 3));
   const paidStatuses = ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO", "ENVIADO", "ENTREGUE"];
 
-  const [awaitingApproval, refundRequests, pendingShipment, shippingIssues, chatPending, unansweredQuestions, pendingMessages, salesToday, salesMonth, recentOrders, products] = await Promise.all([
+  const [awaitingApproval, refundRequests, pendingShipment, shippingIssues, chatPending, unansweredQuestions, pendingMessages, salesToday, salesMonth, recentOrders, products, melhorEnvioCredential] = await Promise.all([
     prisma.order.count({ where: { status: "AGUARDANDO_PAGAMENTO" } }),
     prisma.order.count({ where: { status: "REEMBOLSO_SOLICITADO" } }),
     prisma.order.count({ where: { status: { in: ["PAGAMENTO_APROVADO", "PREPARANDO_ENVIO"] } } }),
@@ -179,6 +179,7 @@ export async function getSellerDashboardSummary() {
     prisma.product.findMany({
       select: { id: true, name: true, imageUrl: true, active: true, stock: true, variants: { select: { stock: true } } },
     }),
+    prisma.integrationCredential.findUnique({ where: { provider: "MELHOR_ENVIO" }, select: { expiresAt: true, encryptedRefreshToken: true, updatedAt: true } }),
   ]);
 
   const inventory = products.map((product) => ({
@@ -204,6 +205,13 @@ export async function getSellerDashboardSummary() {
     lowStockCount: inventory.filter((product) => product.active && product.stock <= 5).length,
     lowStockProducts,
     recentOrders,
+    melhorEnvio: {
+      connected: !!melhorEnvioCredential,
+      expiresAt: melhorEnvioCredential?.expiresAt ?? null,
+      updatedAt: melhorEnvioCredential?.updatedAt ?? null,
+      canAutoRenew: !!melhorEnvioCredential?.encryptedRefreshToken,
+      needsReconnect: !!melhorEnvioCredential && melhorEnvioCredential.expiresAt <= now && !melhorEnvioCredential.encryptedRefreshToken,
+    },
   };
 }
 
@@ -384,19 +392,12 @@ export async function getAdminOrderReceipt(id: string) {
       shipCity: true,
       shipState: true,
       shipCep: true,
-      trackingCode: true,
-      trackingUrl: true,
-      shippingLabelStatus: true,
       refundedCents: true,
       mpPaymentId: true,
       items: { select: { id: true, productName: true, variantName: true, unitCents: true, qty: true } },
       returnRequests: {
         select: { id: true, status: true, requestType: true, approvedCents: true, requestedCents: true, refundedAt: true, mpRefundId: true },
         orderBy: { createdAt: "asc" },
-      },
-      shippingEvents: {
-        select: { id: true, title: true, occurredAt: true, needsAttention: true },
-        orderBy: { occurredAt: "asc" },
       },
       user: { select: { cpf: true } },
     },

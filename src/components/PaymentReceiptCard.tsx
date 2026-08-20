@@ -38,7 +38,6 @@ export type ReceiptPayment = {
 
 type ReceiptItem = { id: string; productName: string; variantName?: string | null; unitCents: number; qty: number };
 type ReceiptReturn = { id: string; status: string; requestType: string; approvedCents: number | null; requestedCents: number; refundedAt: Date | string | null; mpRefundId: string | null };
-type ReceiptShippingEvent = { id: string; title: string; occurredAt: Date | string; needsAttention: boolean };
 
 type ReceiptOrderDetails = {
   status: string;
@@ -54,12 +53,8 @@ type ReceiptOrderDetails = {
   shipCity: string | null;
   shipState: string | null;
   shipCep: string | null;
-  trackingCode: string | null;
-  trackingUrl: string | null;
-  shippingLabelStatus: string | null;
   refundedCents: number;
   returns: ReceiptReturn[];
-  shippingEvents: ReceiptShippingEvent[];
 };
 
 const ORDER_LABELS: Record<string, string> = { AGUARDANDO_PAGAMENTO: "Aguardando pagamento", PAGAMENTO_RECUSADO: "Pagamento recusado", PAGAMENTO_APROVADO: "Pagamento confirmado", PREPARANDO_ENVIO: "Preparando envio", ENVIADO: "Enviado", ENTREGUE: "Entregue", REEMBOLSADO: "Reembolsado", CANCELADO: "Cancelado" };
@@ -119,7 +114,6 @@ export function PaymentReceiptCard({
   const refundedCents = Math.max(orderDetails.refundedCents, Math.round((payment.transaction_amount_refunded ?? 0) * 100));
   const confirmedCents = paidCents || totalCents;
   const netAfterRefundCents = Math.max(0, confirmedCents - refundedCents);
-  const latestShippingEvent = orderDetails.shippingEvents.at(-1);
 
   return (
     <main className="mx-auto max-w-3xl rounded-xl2 border border-line bg-paper p-6 sm:p-10 print:max-w-none print:rounded-none print:border-0 print:p-0">
@@ -228,7 +222,7 @@ export function PaymentReceiptCard({
         <dl className="mt-4 space-y-2 border-t border-line pt-4 text-sm"><div className="flex justify-between"><dt className="text-ink-muted">Subtotal dos produtos</dt><dd>{formatBRL(itemSubtotalCents)}</dd></div><div className="flex justify-between"><dt className="text-ink-muted">Frete</dt><dd>{orderDetails.shippingCents == null ? "—" : formatBRL(orderDetails.shippingCents)}</dd></div><div className="flex justify-between border-t-2 border-ink pt-3 text-lg font-semibold"><dt>Total confirmado</dt><dd>{formatBRL(confirmedCents)}</dd></div>{refundedCents > 0 && <><div className="flex justify-between text-violet-700"><dt>Reembolsos confirmados</dt><dd>− {formatBRL(refundedCents)}</dd></div><div className="flex justify-between rounded-lg bg-violet-50 px-3 py-2 font-semibold"><dt>Valor após reembolsos</dt><dd>{formatBRL(netAfterRefundCents)}</dd></div></>}</dl>
       </section>
 
-      {orderDetails.shipStreet && <section className="grid gap-5 border-t border-line py-6 text-sm sm:grid-cols-2"><div><p className="font-semibold">Endereço de entrega</p><p className="mt-2 text-ink-soft">{orderDetails.shipName}<br />{orderDetails.shipStreet}, {orderDetails.shipNumber}{orderDetails.shipComplement ? ` — ${orderDetails.shipComplement}` : ""}<br />{orderDetails.shipNeighborhood} · {orderDetails.shipCity}/{orderDetails.shipState}<br />CEP {orderDetails.shipCep}</p></div><div><p className="font-semibold">Acompanhamento da entrega</p><p className="mt-2 text-ink-soft">{latestShippingEvent?.title || (orderDetails.trackingCode ? "Rastreamento disponível" : "Aguardando expedição")}</p>{latestShippingEvent && <p className="mt-1 text-xs text-ink-muted">Atualizado em {formatDate(latestShippingEvent.occurredAt)}</p>}{orderDetails.trackingCode && <p className="mt-2 font-mono text-xs">{orderDetails.trackingCode}</p>}{orderDetails.trackingUrl && <a href={orderDetails.trackingUrl} className="no-print mt-2 inline-block text-xs font-bold text-brand hover:underline">Abrir rastreamento ↗</a>}</div></section>}
+      {orderDetails.shipStreet && <section className="border-t border-line py-6 text-sm"><p className="font-semibold">Endereço de entrega</p><p className="mt-2 text-ink-soft">{orderDetails.shipName}<br />{orderDetails.shipStreet}, {orderDetails.shipNumber}{orderDetails.shipComplement ? ` — ${orderDetails.shipComplement}` : ""}<br />{orderDetails.shipNeighborhood} · {orderDetails.shipCity}/{orderDetails.shipState}<br />CEP {orderDetails.shipCep}</p></section>}
 
       {orderDetails.returns.length > 0 && <section className="border-t border-line py-6"><p className="mb-3 text-sm font-semibold">Cancelamentos e devoluções</p><ul className="space-y-2 text-sm">{orderDetails.returns.map((request) => <li key={request.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-mist p-3"><span>{request.requestType === "CANCELLATION" ? "Cancelamento" : "Devolução"} · {request.status}</span><span className="font-semibold">{formatBRL(request.approvedCents ?? request.requestedCents)}</span>{request.mpRefundId && <span className="w-full break-all font-mono text-[10px] text-ink-muted">ID do reembolso: {request.mpRefundId}</span>}</li>)}</ul></section>}
 
